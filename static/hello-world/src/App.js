@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { TreeList, Column, ColumnChooser } from 'devextreme-react/tree-list';
+import { TreeList, Editing, Button as CellButton, Column, ColumnChooser } from 'devextreme-react/tree-list';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Template } from 'devextreme-react/core/template';
 import SelectBox from 'devextreme-react/select-box';
-import { getIssueData, getAllProject, getIssueLinkType } from "./data/ManageData";
+import { getIssueData, getAllProject, getIssueLinkType, findChildByJql } from "./data/ManageData";
+import { findItem } from "./utility/Utility";
 import BlockerCell from "./component/BlockerCell";
 import TextBox from 'devextreme-react/text-box';
+import DataSource from 'devextreme/data/data_source';
 
 function App() {
     let [projectsDataSource, setProjectsDataSource] = useState([]);
@@ -14,7 +16,36 @@ function App() {
     let [issueLinkDataSource, setissueLinkDataSource] = useState([]);
     let [issueLinkSelected, setIssueLinkSelected] = useState(null);
     let [issueKey, setIssueKey] = useState("");
-    let [dataSource, setDataSource] = useState(null);
+    let [dataSource, setDataSource] = useState([]);
+    var dataSourceStore = new DataSource({  
+        key: "id",  
+        load: function () {  
+            return dataSource;  
+        },  
+        insert: function (values) {
+            var parentItem = findItem(dataSource, values.parentId);  
+            delete values.parentId;  
+            if (!parentItem) {  
+                dataSource.push(values);  
+            } else {  
+                parentItem.children = parentItem.children || [];  
+                parentItem.children.push(values);  
+            }  
+            dataSourceStore.reload();
+        },  
+        update: function (key, values) {  
+            var item = findItem(dataSource, key);  
+            if (item) {  
+                Object.assign(item, values);  
+            }  
+        },  
+        remove: function (key) {  
+            var itemWithIndex = findItem(dataSource, key, true);  
+            if (itemWithIndex) {  
+                itemWithIndex.children.splice(itemWithIndex.index, 1);  
+            }  
+        } 
+    });
     const [searchButton, setsearchButton] = useState({
         loadIndicatorVisible: false,
         buttonText: 'Search',
@@ -38,21 +69,22 @@ function App() {
         if (projectSelected === null || projectSelected.name === "") {
             alert("Please select project");
             return;
-          }
-          if (issueLinkSelected === null ||issueLinkSelected === "") {
+        }
+        if (issueLinkSelected === null || issueLinkSelected === "") {
             alert("Please select link type of issue");
             return;
-          }
+        }
         setsearchButton({
             loadIndicatorVisible: true,
             buttonText: 'Searching',
         });
-        let response = await getIssueData(projectSelected.name, issueLinkSelected, issueKey);
+        let response = await getIssueData(projectSelected, issueLinkSelected, issueKey);
         setsearchButton({
             loadIndicatorVisible: false,
             buttonText: 'Search',
         });
-        setDataSource(response.result);
+        setDataSource(response);
+        dataSourceStore.load();
     };
 
     const handleClickReset = () => {
@@ -73,6 +105,13 @@ function App() {
         setIssueKey(e.value);
     }
 
+    const onRowExpanding = async (e) => {
+        var expandingNode = findItem(dataSource, e.key);
+        let response = await findChildByJql(projectSelected, issueLinkSelected, expandingNode.id)
+        expandingNode.children = response;
+        dataSourceStore.reload();
+    }
+
     return (
         <div>
             <ul class="search-criteria-list">
@@ -80,12 +119,6 @@ function App() {
                     <SelectBox
                         value={projectSelected}
                         displayExpr="name"
-                        searchEnabled={true}
-                        searchMode={"contains"}
-                        searchExpr={"name"}
-                        searchTimeout={200}
-                        minSearchLength={0}
-                        showDataBeforeSearch={false}
                         dataSource={projectsDataSource}
                         labelMode={"floating"}
                         label='Select project'
@@ -123,30 +156,41 @@ function App() {
             </ul>
             <div>
                 <TreeList
-                    id="treeIssues"
-                    dataSource={dataSource}
+                    dataSource={dataSourceStore}
                     showRowLines={true}
                     showBorders={true}
                     columnAutoWidth={true}
                     allowColumnReordering={true}
-                    rootValue={-1}
+                    rootValue=""
                     keyExpr="id"
                     parentIdExpr="parentId"
                     hasItemsExpr="hasChildren"
-                    itemsExpr="childIssues"
+                    itemsExpr="children"
                     dataStructure="tree"
+                    onRowExpanding={onRowExpanding}
                 >
-                    <Column dataField="key" allowHiding={false} />
-                    <Column dataField="summary" />
-                    <Column dataField="startdate" dataType="date" />
-                    <Column dataField="duedate" dataType="date" />
-                    <Column dataField="assignee" />
-                    <Column dataField="status" />
-                    <Column dataField="storyPoint" visible={false} /> {/* visible to defind column is displayed */}
-                    <Column dataField="issueType" />
-                    <Column dataField="blockers" cellTemplate="blockerTemplate" /> {/* cellTemplate to custom displaying */}
+                    <Editing
+                        allowAdding={true}
+                        allowUpdating={true}
+                        mode="row"
+                    />
+                    <Column dataField="id" allowHiding={false} caption="Issue Key" />
+                    <Column dataField="summary" caption="Summary" />
+                    <Column dataField="startdate" dataType="date" caption="Start Date" />
+                    <Column dataField="duedate" dataType="date" caption="Due Date" />
+                    <Column dataField="assignee" caption="Assignee" />
+                    <Column dataField="status" caption="Status" />
+                    <Column dataField="storyPoint" visible={false} caption="Story Point" /> {/* visible to defind column is displayed */}
+                    <Column dataField="issueType" caption="Issue Type" />
+                    <Column dataField="blockers" visible={false} cellTemplate="blockerTemplate" caption="Blockers" /> {/* cellTemplate to custom displaying */}
+                    <Column type="buttons">
+                        <CellButton name="add" />
+                        <CellButton name="save" />
+                        <CellButton name="cancel" />
+                    </Column>
                     <ColumnChooser enabled={true} allowSearch={true} mode={"select"} />
                     <Template name="blockerTemplate" render={BlockerCell} />
+
                 </TreeList>
             </div>
         </div>
