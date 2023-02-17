@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { TreeList, Editing, Button as CellButton, Column, ColumnChooser } from 'devextreme-react/tree-list';
+import { TreeList, Editing, Button as CellButton, Column, ColumnChooser, Lookup, RequiredRule } from 'devextreme-react/tree-list';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Template } from 'devextreme-react/core/template';
 import SelectBox from 'devextreme-react/select-box';
-import { getIssueData, getAllProject, getIssueLinkType, findChildByJql } from "./data/ManageData";
-import { findItem } from "./utility/Utility";
+import { getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, linkNewIssue } from "./data/ManageData";
+import { findItem, mappingToBodyIssue } from "./utility/Utility";
 import BlockerCell from "./component/BlockerCell";
 import TextBox from 'devextreme-react/text-box';
 import DataSource from 'devextreme/data/data_source';
@@ -14,37 +14,45 @@ function App() {
     let [projectsDataSource, setProjectsDataSource] = useState([]);
     let [projectSelected, setProjectSelected] = useState(null);
     let [issueLinkDataSource, setissueLinkDataSource] = useState([]);
+    let [listActiveUser, setListActiveUser] = useState([]);
     let [issueLinkSelected, setIssueLinkSelected] = useState(null);
     let [issueKey, setIssueKey] = useState("");
     let [dataSource, setDataSource] = useState([]);
-    var dataSourceStore = new DataSource({  
-        key: "id",  
-        load: function () {  
-            return dataSource;  
-        },  
-        insert: function (values) {
-            var parentItem = findItem(dataSource, values.parentId);  
-            delete values.parentId;  
-            if (!parentItem) {  
-                dataSource.push(values);  
-            } else {  
-                parentItem.children = parentItem.children || [];  
-                parentItem.children.push(values);  
-            }  
+    var dataSourceStore = new DataSource({
+        key: "id",
+        load: function () {
+            return dataSource;
+        },
+        insert: async function (values) {
+            values.project = projectSelected;
+            let body = mappingToBodyIssue(values);
+            let response = await createIssue(JSON.stringify(body));
+            values.id = response.key;
+            if (values.parentId !== undefined) {
+                linkNewIssue(response.key, values.parentId, issueLinkSelected);
+            }
+            var parentItem = findItem(dataSource, values.parentId);
+            if (!parentItem) {
+                dataSource.push(values);
+            } else {
+                parentItem.children = parentItem.children || [];
+                parentItem.children.push(values);
+                parentItem.hasChildren = true;
+            }
             dataSourceStore.reload();
-        },  
-        update: function (key, values) {  
-            var item = findItem(dataSource, key);  
-            if (item) {  
-                Object.assign(item, values);  
-            }  
-        },  
-        remove: function (key) {  
-            var itemWithIndex = findItem(dataSource, key, true);  
-            if (itemWithIndex) {  
-                itemWithIndex.children.splice(itemWithIndex.index, 1);  
-            }  
-        } 
+        },
+        update: async function (key, values) {
+            var item = findItem(dataSource, key);
+            if (item) {
+                Object.assign(item, values);
+            }
+        },
+        remove: function (key) {
+            var itemWithIndex = findItem(dataSource, key, true);
+            if (itemWithIndex) {
+                itemWithIndex.children.splice(itemWithIndex.index, 1);
+            }
+        }
     });
     const [searchButton, setsearchButton] = useState({
         loadIndicatorVisible: false,
@@ -55,6 +63,7 @@ function App() {
         (async () => {
             let projects = await getAllProject();
             let issueLinkTypes = await getIssueLinkType();
+            let listActiveUser = await getListActiveUser();
             setProjectsDataSource(projects);
             setissueLinkDataSource(
                 issueLinkTypes.map((ele) => {
@@ -62,6 +71,7 @@ function App() {
                     return ele;
                 })
             );
+            setListActiveUser(listActiveUser);
         })();
     }, []);
 
@@ -174,23 +184,45 @@ function App() {
                         allowUpdating={true}
                         mode="row"
                     />
-                    <Column dataField="id" allowHiding={false} caption="Issue Key" />
+                    <Column dataField="id" allowHiding={false} caption="Issue Key" allowEditing={false} />
                     <Column dataField="summary" caption="Summary" />
                     <Column dataField="startdate" dataType="date" caption="Start Date" />
                     <Column dataField="duedate" dataType="date" caption="Due Date" />
-                    <Column dataField="assignee" caption="Assignee" />
-                    <Column dataField="status" caption="Status" />
-                    <Column dataField="storyPoint" visible={false} caption="Story Point" /> {/* visible to defind column is displayed */}
-                    <Column dataField="issueType" caption="Issue Type" />
+                    <Column
+                        dataField="assignee"
+                        caption="Assignee">
+                        <Lookup
+                            dataSource={listActiveUser}
+                            valueExpr="accountId"
+                            displayExpr="displayName" />
+                    </Column>
+                    <Column 
+                        dataField="status" 
+                        caption="Status"
+                        visible={false}>
+                        <Lookup
+                            dataSource={issueStatus}
+                            valueExpr="id"
+                            displayExpr="name" />
+                    </Column>
+                    <Column dataField="storyPoint" dataType="number" visible={false} caption="Story Point" /> {/* visible to defind column is displayed */}
+                    <Column
+                        dataField="issueType"
+                        caption="Issue Type">
+                        <Lookup
+                            dataSource={issueType}
+                            valueExpr="id"
+                            displayExpr="name" />
+                        <RequiredRule />
+                    </Column>
                     <Column dataField="blockers" visible={false} cellTemplate="blockerTemplate" caption="Blockers" /> {/* cellTemplate to custom displaying */}
-                    <Column type="buttons">
+                    <Column type="buttons" caption="Actions">
                         <CellButton name="add" />
                         <CellButton name="save" />
                         <CellButton name="cancel" />
                     </Column>
                     <ColumnChooser enabled={true} allowSearch={true} mode={"select"} />
                     <Template name="blockerTemplate" render={BlockerCell} />
-
                 </TreeList>
             </div>
         </div>

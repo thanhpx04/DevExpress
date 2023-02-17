@@ -27,7 +27,7 @@ export const getIssueData = async (projects, linkType, issueKey) => {
             duedate: element.fields.duedate,
             assignee: element.fields.assignee ? element.fields.assignee.displayName : null,
             status: element.fields.status.name,
-            storyPoint: element.fields.customfield_10028, // depend on customfield was definded
+            storyPoint: element.fields.customfield_10033, // depend on customfield was definded
             issueType: element.fields.issuetype.name,
             blockers: getBlockersString(element),
             hasChildren: getIssueChildLink(element, linkType).length > 0,
@@ -35,7 +35,6 @@ export const getIssueData = async (projects, linkType, issueKey) => {
         }
         issues.push(item)
     }))
-    console.log(issues)
     return issues;
 }
 
@@ -55,7 +54,7 @@ export const findChildByJql = async (projects, linkType, issueKey) => {
             duedate: element.fields.duedate,
             assignee: element.fields.assignee ? element.fields.assignee.displayName : null,
             status: element.fields.status.name,
-            storyPoint: element.fields.customfield_10028, // depend on customfield was definded
+            storyPoint: element.fields.customfield_10033, // depend on customfield was definded
             issueType: element.fields.issuetype.name,
             blockers: getBlockersString(element),
             hasChildren: getIssueChildLink(element, linkType).length > 0,
@@ -65,7 +64,7 @@ export const findChildByJql = async (projects, linkType, issueKey) => {
     }))
     return listChildren;
 }
-const getIssueChildLink = ( element, linkType) => {
+const getIssueChildLink = (element, linkType) => {
     let result = element.fields.issuelinks.filter(link => {
         return link.outwardIssue && link.type.outward === linkType.outward
     });
@@ -111,6 +110,47 @@ export const getIssueLinkType = async (props) => {
     return result.issueLinkTypes;
 };
 
+export const issueType = [
+    { id: 10007, name: 'Story' },
+    { id: 10012, name: 'Bug' },
+    { id: 10000, name: 'Epic' },
+    { id: 10005, name: 'Task' }
+]
+
+export const issueStatus = [
+    { id: 10043, name: 'NEW' },
+    { id: 3, name: 'In Progress' },
+    { id: 6, name: 'Closed' },
+    { id: 10035, name: 'Cancelled' }
+]
+
+export const getListActiveUser = async () => {
+    const response = await requestJira(`/rest/api/2/users/search`, {
+        method: "GET",
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+        },
+    });
+    const result = await response.json();
+    return result.filter(account => {
+        return account.active && account.accountType === "atlassian"
+    });
+};
+
+export const createIssue = async (body) => {
+    const response = await requestJira('/rest/api/2/issue', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: body
+    })
+    console.log(`Response: ${response.status} ${response.statusText}`);
+    return await response.json()
+}
+
 const deleteIssueLink = async (issueLinkID) => {
     const response = await requestJira(`/rest/api/2/issueLink/${issueLinkID}`, {
         method: 'DELETE',
@@ -124,7 +164,7 @@ const deleteIssueLink = async (issueLinkID) => {
 
 }
 
-const linkNewIssue = async (outwardKey, inwardKey, issueLinkType) => {
+export const linkNewIssue = async (outwardKey, inwardKey, issueLinkType) => {
     let body = {
         "outwardIssue": {
             "key": outwardKey
