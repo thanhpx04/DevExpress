@@ -25,10 +25,10 @@ export const getIssueData = async (projects, linkType, issueKey) => {
             summary: element.fields.summary,
             startdate: element.fields.customfield_10015, // depend on customfield was definded
             duedate: element.fields.duedate,
-            assignee: element.fields.assignee ? element.fields.assignee.displayName : null,
+            assignee: element.fields.assignee ? element.fields.assignee.accountId : null,
             status: element.fields.status.name,
             storyPoint: element.fields.customfield_10033, // depend on customfield was definded
-            issueType: element.fields.issuetype.name,
+            issueType: element.fields.issuetype.id,
             blockers: getBlockersString(element),
             hasChildren: getIssueChildLink(element, linkType).length > 0,
             parentId: "" // level 1 of tree
@@ -52,10 +52,10 @@ export const findChildByJql = async (projects, linkType, issueKey) => {
             summary: element.fields.summary,
             startdate: element.fields.customfield_10015, // depend on customfield was definded
             duedate: element.fields.duedate,
-            assignee: element.fields.assignee ? element.fields.assignee.displayName : null,
+            assignee: element.fields.assignee ? element.fields.assignee.accountId : null,
             status: element.fields.status.name,
             storyPoint: element.fields.customfield_10033, // depend on customfield was definded
-            issueType: element.fields.issuetype.name,
+            issueType: element.fields.issuetype.id,
             blockers: getBlockersString(element),
             hasChildren: getIssueChildLink(element, linkType).length > 0,
             parentId: issueKey
@@ -124,7 +124,7 @@ export const issueStatus = [
     { id: 10035, name: 'Cancelled' }
 ]
 
-export const getListActiveUser = async () => {
+export const getListActiveUser = async (aa) => {
     const response = await requestJira(`/rest/api/2/users/search`, {
         method: "GET",
         headers: {
@@ -132,7 +132,7 @@ export const getListActiveUser = async () => {
             "Content-Type": "application/json",
         },
     });
-    const result = await response.json();
+    let result = await response.json();
     return result.filter(account => {
         return account.active && account.accountType === "atlassian"
     });

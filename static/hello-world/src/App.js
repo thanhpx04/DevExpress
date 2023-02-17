@@ -8,7 +8,7 @@ import { getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueTyp
 import { findItem, mappingToBodyIssue } from "./utility/Utility";
 import BlockerCell from "./component/BlockerCell";
 import TextBox from 'devextreme-react/text-box';
-import DataSource from 'devextreme/data/data_source';
+import CustomStore from 'devextreme/data/data_source';
 
 function App() {
     let [projectsDataSource, setProjectsDataSource] = useState([]);
@@ -18,7 +18,7 @@ function App() {
     let [issueLinkSelected, setIssueLinkSelected] = useState(null);
     let [issueKey, setIssueKey] = useState("");
     let [dataSource, setDataSource] = useState([]);
-    var dataSourceStore = new DataSource({
+    var dataSourceStore = new CustomStore({
         key: "id",
         load: function () {
             return dataSource;
@@ -124,7 +124,7 @@ function App() {
 
     return (
         <div>
-            <ul class="search-criteria-list">
+            <ul className="search-criteria-list">
                 <li>
                     <SelectBox
                         value={projectSelected}
@@ -193,6 +193,9 @@ function App() {
                         caption="Assignee">
                         <Lookup
                             dataSource={listActiveUser}
+                            searchEnabled={true}
+                            minSearchLength={3}
+                            // searchExpr="displayName"
                             valueExpr="accountId"
                             displayExpr="displayName" />
                     </Column>
