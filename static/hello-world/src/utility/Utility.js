@@ -26,7 +26,8 @@ export function mappingToBodyIssue(values) {
             // status: {
             //     id: values.status
             // },
-            // customfield_10028: values.storyPoint, // storyPoint - depend on customfield was definded
+            customfield_10033: values.storyPoint, // storyPoint - depend on customfield was definded
+            customfield_10020: values.sprint,
             issuetype: {
                 id: values.issueType
             },

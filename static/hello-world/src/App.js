@@ -4,9 +4,9 @@ import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Template } from 'devextreme-react/core/template';
 import SelectBox from 'devextreme-react/select-box';
-import { getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, linkNewIssue } from "./data/ManageData";
+import { getBoards, getSprints, getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, linkNewIssue } from "./data/ManageData";
 import { findItem, mappingToBodyIssue } from "./utility/Utility";
-import BlockerCell from "./component/BlockerCell";
+import { BlockerCell, FixVersionCell } from "./component/TemplateCell";
 import TextBox from 'devextreme-react/text-box';
 import CustomStore from 'devextreme/data/data_source';
 
@@ -15,6 +15,7 @@ function App() {
     let [projectSelected, setProjectSelected] = useState(null);
     let [issueLinkDataSource, setissueLinkDataSource] = useState([]);
     let [listActiveUser, setListActiveUser] = useState([]);
+    let [listSprints, setlistSprints] = useState([]);
     let [issueLinkSelected, setIssueLinkSelected] = useState(null);
     let [issueKey, setIssueKey] = useState("");
     let [dataSource, setDataSource] = useState([]);
@@ -64,6 +65,8 @@ function App() {
             let projects = await getAllProject();
             let issueLinkTypes = await getIssueLinkType();
             let listActiveUser = await getListActiveUser();
+            let boards = await getBoards();
+            let sprints = await getSprints(boards);
             setProjectsDataSource(projects);
             setissueLinkDataSource(
                 issueLinkTypes.map((ele) => {
@@ -72,6 +75,7 @@ function App() {
                 })
             );
             setListActiveUser(listActiveUser);
+            setlistSprints(sprints);
         })();
     }, []);
 
@@ -180,22 +184,21 @@ function App() {
                     onRowExpanding={onRowExpanding}
                 >
                     <Editing
-                        allowAdding={true}
                         allowUpdating={true}
+                        allowAdding={true}
                         mode="row"
                     />
                     <Column dataField="id" allowHiding={false} caption="Issue Key" allowEditing={false} />
                     <Column dataField="summary" caption="Summary" />
-                    <Column dataField="startdate" dataType="date" caption="Start Date" />
-                    <Column dataField="duedate" dataType="date" caption="Due Date" />
+                    <Column dataField="startdate" dataType="date" caption="Start Date" visible={false} />
+                    <Column dataField="duedate" dataType="date" caption="Due Date" visible={false} />
                     <Column
                         dataField="assignee"
                         caption="Assignee">
                         <Lookup
                             dataSource={listActiveUser}
                             searchEnabled={true}
-                            minSearchLength={3}
-                            // searchExpr="displayName"
+                            searchExpr="displayName"
                             valueExpr="accountId"
                             displayExpr="displayName" />
                     </Column>
@@ -219,13 +222,36 @@ function App() {
                         <RequiredRule />
                     </Column>
                     <Column dataField="blockers" visible={false} cellTemplate="blockerTemplate" caption="Blockers" /> {/* cellTemplate to custom displaying */}
+                    <Column
+                        dataField="sprint"
+                        caption="Sprint">
+                        <Lookup
+                            dataSource={listSprints}
+                            searchEnabled={true}
+                            searchExpr="name"
+                            valueExpr="id"
+                            displayExpr="name" />
+                    </Column>
+                    <Column
+                        dataField="fixVersions"
+                        cellTemplate="fixVersionsTemplate"
+                        caption="Fix versions">
+                        {/* <Lookup
+                            dataSource={listActiveUser}
+                            searchEnabled={true}
+                            searchExpr="displayName"
+                            valueExpr="accountId"
+                            displayExpr="displayName" /> */}
+                    </Column>
                     <Column type="buttons" caption="Actions">
                         <CellButton name="add" />
+                        <CellButton name="edit" />
                         <CellButton name="save" />
                         <CellButton name="cancel" />
                     </Column>
                     <ColumnChooser enabled={true} allowSearch={true} mode={"select"} />
                     <Template name="blockerTemplate" render={BlockerCell} />
+                    <Template name="fixVersionsTemplate" render={FixVersionCell} />
                 </TreeList>
             </div>
         </div>

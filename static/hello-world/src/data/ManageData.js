@@ -1,4 +1,5 @@
 import { requestJira } from "@forge/bridge"
+import * as Constants from '../utility/Constants';
 
 const data = async (projects, linkType, issueKey) => {
     // let listProject = projects.map(element => JSON.stringify(element.key))
@@ -23,13 +24,16 @@ export const getIssueData = async (projects, linkType, issueKey) => {
         let item = {
             id: element.key,
             summary: element.fields.summary,
-            startdate: element.fields.customfield_10015, // depend on customfield was definded
+            startdate: element.fields[Constants.START_DATE], // depend on customfield was definded
             duedate: element.fields.duedate,
             assignee: element.fields.assignee ? element.fields.assignee.accountId : null,
             status: element.fields.status.name,
-            storyPoint: element.fields.customfield_10033, // depend on customfield was definded
+            storyPoint: element.fields[Constants.STORY_POINT], // depend on customfield was definded
             issueType: element.fields.issuetype.id,
             blockers: getBlockersString(element),
+            sprint: element.fields[Constants.SPRINT] ? element.fields[Constants.SPRINT][0].id : null, // depend on customfield was definded
+            fixVersions: element.fields.fixVersions,
+            // displayFixVersions: getfixVersions(element.fields.fixVersions),
             hasChildren: getIssueChildLink(element, linkType).length > 0,
             parentId: "" // level 1 of tree
         }
@@ -50,13 +54,14 @@ export const findChildByJql = async (projects, linkType, issueKey) => {
         let item = {
             id: element.key,
             summary: element.fields.summary,
-            startdate: element.fields.customfield_10015, // depend on customfield was definded
+            startdate: element.fields[Constants.START_DATE], // depend on customfield was definded
             duedate: element.fields.duedate,
             assignee: element.fields.assignee ? element.fields.assignee.accountId : null,
             status: element.fields.status.name,
-            storyPoint: element.fields.customfield_10033, // depend on customfield was definded
+            storyPoint: element.fields[Constants.STORY_POINT], // depend on customfield was definded
             issueType: element.fields.issuetype.id,
             blockers: getBlockersString(element),
+            sprint: element.fields[Constants.SPRINT] ? element.fields[Constants.SPRINT][0].id : null, // depend on customfield was definded
             hasChildren: getIssueChildLink(element, linkType).length > 0,
             parentId: issueKey
         }
@@ -86,6 +91,39 @@ const getBlockersString = (issue) => {
     return blockerToView;
 }
 
+export const getBoards = async () => {
+    const response = await requestJira(`/rest/agile/1.0/board`, {
+        method: "GET",
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+        },
+    });
+    let result = await response.json();
+    return result.values;
+}
+
+export const getBoardSprints = async (boardID) => {
+    const response = await requestJira(`/rest/agile/1.0/board/${boardID}/sprint`, {
+        method: "GET",
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+        },
+    });
+    let result = await response.json();
+    return result.values.filter(sprint => sprint.state === "active");
+}
+
+export const getSprints = async (boards) => {
+    const result = await Promise.all(
+        boards.map(async (e) => {
+            return await getBoardSprints(e.id);
+        })
+    )
+    return result.flat();
+}
+
 export const getAllProject = async () => {
     const response = await requestJira(`/rest/api/2/project/search`, {
         method: "GET",
@@ -111,10 +149,15 @@ export const getIssueLinkType = async (props) => {
 };
 
 export const issueType = [
-    { id: 10007, name: 'Story' },
-    { id: 10012, name: 'Bug' },
-    { id: 10000, name: 'Epic' },
-    { id: 10005, name: 'Task' }
+    { id: 10006, name: 'Story' },
+    { id: 10009, name: 'Bug' },
+    { id: 10018, name: 'Request' },
+    { id: 10007, name: 'Task' },
+    { id: 10019, name: 'Test' },
+    { id: 10022, name: 'Test Execution' },
+    { id: 10021, name: 'Test Plan' },
+    { id: 10020, name: 'Test Set' },
+    { id: 10023, name: 'Precondition' }
 ]
 
 export const issueStatus = [

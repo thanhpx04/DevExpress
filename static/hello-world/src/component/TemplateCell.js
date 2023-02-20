@@ -1,7 +1,7 @@
 import React from 'react';
 import { router } from '@forge/bridge';
 
-export default function BlockerCell(options) {
+export function BlockerCell(options) {
     const blockerList = options.data.blockers;
     if (!blockerList) {
         return <span className="name"></span>;
@@ -21,6 +21,23 @@ export default function BlockerCell(options) {
                         {item.key}
                     </a>
                 </span></p>
+            ))}
+        </React.Fragment>
+    );
+}
+
+export function FixVersionCell(options) {
+    const fixVersionsList = options.data.fixVersions;
+    if (!fixVersionsList) {
+        return <span className="name"></span>;
+    }
+
+    return (
+        <React.Fragment>
+            {fixVersionsList.map(item => (
+                <span className="name">
+                    {item.name}&#44; 
+                </span>
             ))}
         </React.Fragment>
     );
