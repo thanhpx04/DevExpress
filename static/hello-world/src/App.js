@@ -16,6 +16,7 @@ function App() {
     let [issueLinkDataSource, setissueLinkDataSource] = useState([]);
     let [listActiveUser, setListActiveUser] = useState([]);
     let [listSprints, setlistSprints] = useState([]);
+    let [sprintSelected, setSprintSelected] = useState(null);
     let [issueLinkSelected, setIssueLinkSelected] = useState(null);
     let [issueKey, setIssueKey] = useState("");
     let [dataSource, setDataSource] = useState([]);
@@ -92,7 +93,7 @@ function App() {
             loadIndicatorVisible: true,
             buttonText: 'Searching',
         });
-        let response = await getIssueData(projectSelected, issueLinkSelected, issueKey);
+        let response = await getIssueData(projectSelected, issueLinkSelected, issueKey, (sprintSelected ? [sprintSelected] : null));
         setsearchButton({
             loadIndicatorVisible: false,
             buttonText: 'Search',
@@ -104,6 +105,7 @@ function App() {
     const handleClickReset = () => {
         setProjectSelected(null);
         setIssueLinkSelected(null);
+        setSprintSelected(null);
         setIssueKey("");
     };
 
@@ -118,6 +120,10 @@ function App() {
     const onChangeIssueKey = (e) => {
         setIssueKey(e.value);
     }
+
+    const onChangeSprint = (e) => {
+        setSprintSelected(e.value);
+    };
 
     const onRowExpanding = async (e) => {
         var expandingNode = findItem(dataSource, e.key);
@@ -147,6 +153,16 @@ function App() {
                         labelMode={"floating"}
                         label='Select Issue Link Type'
                         onValueChanged={onChangeLinkIssueType}
+                    />
+                </li>
+                <li>
+                    <SelectBox
+                        value={sprintSelected}
+                        displayExpr="name"
+                        dataSource={listSprints}
+                        labelMode={"floating"}
+                        label='Select Sprint'
+                        onValueChanged={onChangeSprint}
                     />
                 </li>
                 <li>
@@ -202,8 +218,8 @@ function App() {
                             valueExpr="accountId"
                             displayExpr="displayName" />
                     </Column>
-                    <Column 
-                        dataField="status" 
+                    <Column
+                        dataField="status"
                         caption="Status"
                         visible={false}>
                         <Lookup

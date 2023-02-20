@@ -1,19 +1,28 @@
 import { requestJira } from "@forge/bridge"
 import * as Constants from '../utility/Constants';
 
-const data = async (projects, linkType, issueKey) => {
+const data = async (projects, linkType, issueKey, sprints) => {
     // let listProject = projects.map(element => JSON.stringify(element.key))
     // const params = issueKey === "" ? `project in (${listProject}) AND (filter != ${linkType.id})` : `project in (${listProject}) AND (filter != ${linkType.id}) AND issue =${issueKey}`;
-    const params = issueKey === "" ? `project = ${projects.name} AND (filter != "${linkType.id}")` : `project = ${projects.name} AND (filter != "${linkType.id}") AND issue =${issueKey}`;
+    let params = issueKey === "" ? `project = ${projects.name} AND (filter != "${linkType.id}")` : `project = ${projects.name} AND (filter != "${linkType.id}") AND issue =${issueKey}`;
+
+    // checking sprint
+    if(sprints && sprints.length > 0) {
+        const sprintIDs = sprints.map((e) => e.id);
+        params = params.concat(
+            ` AND sprint in (${sprintIDs.join(',')})`
+        );
+    }
+
     const response = await requestJira(`/rest/api/2/search?jql=${params}`);
     return await response.json();
 };
 
-export const getIssueData = async (projects, linkType, issueKey) => {
+export const getIssueData = async (projects, linkType, issueKey, sprints) => {
     if (projects == null && linkType == null) {
         return [];
     }
-    const result = await data(projects, linkType, issueKey);
+    const result = await data(projects, linkType, issueKey, sprints);
     if (result.errorMessages) {
         return {
             error: result.errorMessages
