@@ -1,4 +1,4 @@
-
+import * as Constants from '../utility/Constants';
 
 export function findItem(items, key, withIndex) {
     var item;
@@ -15,19 +15,16 @@ export function findItem(items, key, withIndex) {
 }
 
 export function mappingToBodyIssue(values) {
-    return {
+    let result =  {
         fields: {
             summary: values.summary,
-            customfield_10015: values.startdate, // Start date - depend on customfield was definded
             duedate: values.duedate,
             assignee: {
                 id: values.assignee
             },
             // status: {
-            //     id: values.status
+                //     id: values.status
             // },
-            customfield_10033: values.storyPoint, // storyPoint - depend on customfield was definded
-            customfield_10020: values.sprint,
             issuetype: {
                 id: values.issueType
             },
@@ -36,4 +33,10 @@ export function mappingToBodyIssue(values) {
             }
         }
     };
+    result.fields[Constants.START_DATE] = values.startdate, // Start date - depend on customfield was definded
+    result.fields[Constants.STORY_POINT] = values.storyPoint; // storyPoint - depend on customfield was definded
+    result.fields[Constants.SPRINT] = values.sprint; // sprint - depend on customfield was definded
+    result.fields[Constants.TEAM] = values.team.toString(); // team - depend on customfield was definded
+
+    return result;
 }

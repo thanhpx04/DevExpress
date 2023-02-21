@@ -30,7 +30,7 @@ const FixedVersionFilter = (props) => {
             displayExpr="name"
             dataSource={dataSource}
             labelMode={"floating"}
-            label='Select Sprint'
+            label='Select Fixed Versions'
             onSelectionChanged={onSelectionChanged}
         />
     );

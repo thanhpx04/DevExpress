@@ -4,21 +4,24 @@ import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Template } from 'devextreme-react/core/template';
 import SelectBox from 'devextreme-react/select-box';
-import { updateIssue, getBoards, getSprints, getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, linkNewIssue } from "./data/ManageData";
+import { getTeams, updateIssue, getBoards, getSprints, getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, linkNewIssue } from "./data/ManageData";
 import { findItem, mappingToBodyIssue } from "./utility/Utility";
 import { BlockerCell, FixVersionCell } from "./component/TemplateCell";
 import TextBox from 'devextreme-react/text-box';
 import CustomStore from 'devextreme/data/data_source';
 import FixedVersionFilter from "./component/FixedVersionFilter";
+import TeamFilter from "./component/TeamFilter";
 
 function App() {
     let [projectsDataSource, setProjectsDataSource] = useState([]);
     let [projectSelected, setProjectSelected] = useState(null);
     let [issueLinkDataSource, setissueLinkDataSource] = useState([]);
     let [listActiveUser, setListActiveUser] = useState([]);
+    let [listTeams, setlistTeams] = useState([]);
     let [listSprints, setlistSprints] = useState([]);
     let [sprintSelected, setSprintSelected] = useState(null);
     let [fixedVersionSelected, setFixedVersionSelected] = useState(null);
+    let [teamSelected, setTeamSelected] = useState(null);
     let [issueLinkSelected, setIssueLinkSelected] = useState(null);
     let [issueKey, setIssueKey] = useState("");
     let [dataSource, setDataSource] = useState([]);
@@ -75,6 +78,7 @@ function App() {
             let listActiveUser = await getListActiveUser();
             let boards = await getBoards();
             let sprints = await getSprints(boards);
+            let teams = await getTeams();
             setProjectsDataSource(projects);
             setissueLinkDataSource(
                 issueLinkTypes.map((ele) => {
@@ -84,6 +88,7 @@ function App() {
             );
             setListActiveUser(listActiveUser);
             setlistSprints(sprints);
+            setlistTeams(teams);
         })();
     }, []);
 
@@ -100,7 +105,7 @@ function App() {
             loadIndicatorVisible: true,
             buttonText: 'Searching',
         });
-        let response = await getIssueData(projectSelected, issueLinkSelected, issueKey, (sprintSelected ? [sprintSelected] : null), (fixedVersionSelected ? [fixedVersionSelected] : null));
+        let response = await getIssueData(projectSelected, issueLinkSelected, issueKey, (sprintSelected ? [sprintSelected] : null), (fixedVersionSelected ? [fixedVersionSelected] : null), (teamSelected ? [teamSelected] : null));
         setsearchButton({
             loadIndicatorVisible: false,
             buttonText: 'Search',
@@ -134,6 +139,10 @@ function App() {
 
     const onChangeFixedVersion = (value) => {
         setFixedVersionSelected(value);
+    };
+
+    const onChangeTeam = (value) => {
+        setTeamSelected(value);
     };
 
     const onRowExpanding = async (e) => {
@@ -182,6 +191,12 @@ function App() {
                         value={fixedVersionSelected}
                         onChangeFixedVersion={onChangeFixedVersion}
                     ></FixedVersionFilter>
+                </li>
+                <li>
+                    <TeamFilter
+                        value={teamSelected}
+                        onChangeTeam={onChangeTeam}
+                    ></TeamFilter>
                 </li>
                 <li>
                     <TextBox
@@ -276,6 +291,16 @@ function App() {
                             searchExpr="displayName"
                             valueExpr="accountId"
                             displayExpr="displayName" /> */}
+                    </Column>
+                    <Column
+                        dataField="team"
+                        caption="Team">
+                        <Lookup
+                            dataSource={listTeams}
+                            searchEnabled={true}
+                            searchExpr="title"
+                            valueExpr="id"
+                            displayExpr="title" />
                     </Column>
                     <Column type="buttons" caption="Actions">
                         <CellButton name="add" />

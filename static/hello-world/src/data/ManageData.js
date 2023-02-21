@@ -1,23 +1,31 @@
-import { requestJira } from "@forge/bridge"
+import { invoke, requestJira } from "@forge/bridge"
 import * as Constants from '../utility/Constants';
 
-const data = async (projects, linkType, issueKey, sprints, versions) => {
+const data = async (projects, linkType, issueKey, sprints, versions, teams) => {
     // let listProject = projects.map(element => JSON.stringify(element.key))
     // const params = issueKey === "" ? `project in (${listProject}) AND (filter != ${linkType.id})` : `project in (${listProject}) AND (filter != ${linkType.id}) AND issue =${issueKey}`;
     let params = issueKey === "" ? `project = ${projects.name} AND (filter != "${linkType.id}")` : `project = ${projects.name} AND (filter != "${linkType.id}") AND issue =${issueKey}`;
 
     // checking sprint
-    if(sprints && sprints.length > 0) {
+    if (sprints && sprints.length > 0) {
         const sprintIDs = sprints.map((e) => e.id);
         params = params.concat(
             ` AND sprint in (${sprintIDs.join(',')})`
         );
     }
     // checking project's version
-    if(versions && versions.length > 0) {
+    if (versions && versions.length > 0) {
         const versionIDs = versions.map((e) => e.id);
         params = params.concat(
             ` AND fixVersion in (${versionIDs.join(',')})`
+        );
+    }
+
+    // checking teams
+    if (teams && teams.length > 0) {
+        const teamIDs = teams.map((e) => e.id);
+        params = params.concat(
+            ` AND team in (${teamIDs.join(',')})`
         );
     }
 
@@ -25,11 +33,11 @@ const data = async (projects, linkType, issueKey, sprints, versions) => {
     return await response.json();
 };
 
-export const getIssueData = async (projects, linkType, issueKey, sprints, versions) => {
+export const getIssueData = async (projects, linkType, issueKey, sprints, versions, teams) => {
     if (projects == null && linkType == null) {
         return [];
     }
-    const result = await data(projects, linkType, issueKey, sprints, versions);
+    const result = await data(projects, linkType, issueKey, sprints, versions, teams);
     if (result.errorMessages) {
         return {
             error: result.errorMessages
@@ -50,6 +58,7 @@ export const getIssueData = async (projects, linkType, issueKey, sprints, versio
             sprint: element.fields[Constants.SPRINT] ? element.fields[Constants.SPRINT][0].id : null, // depend on customfield was definded
             fixVersions: element.fields.fixVersions,
             project: element.fields.project,
+            team: element.fields[Constants.TEAM] ? Number(element.fields[Constants.TEAM].id) : null, // depend on customfield was definded
             hasChildren: getIssueChildLink(element, linkType).length > 0,
             parentId: "" // level 1 of tree
         }
@@ -80,6 +89,7 @@ export const findChildByJql = async (projects, linkType, issueKey) => {
             sprint: element.fields[Constants.SPRINT] ? element.fields[Constants.SPRINT][0].id : null, // depend on customfield was definded
             fixVersions: element.fields.fixVersions,
             project: element.fields.project,
+            team: element.fields[Constants.TEAM] ? element.fields[Constants.TEAM].id : null, // depend on customfield was definded
             hasChildren: getIssueChildLink(element, linkType).length > 0,
             parentId: issueKey
         }
@@ -151,7 +161,10 @@ export const getSprints = async (boards) => {
             return await getBoardSprints(e.id);
         })
     )
-    return result.flat();
+    return Array.from(new Set(result.flat().map(a => a.id)))
+        .map(id => {
+            return result.flat().find(a => a.id === id)
+        }) // result.flat() return list item but not unique. solution to remove duplicate
 }
 
 export const getAllProject = async () => {
@@ -179,15 +192,16 @@ export const getIssueLinkType = async (props) => {
 };
 
 export const issueType = [
-    { id: "10006", displayName: 'Story' },
-    { id: "10009", displayName: 'Bug' },
-    { id: "10018", displayName: 'Request' },
-    { id: "10007", displayName: 'Task' },
-    { id: "10019", displayName: 'Test' },
-    { id: "10022", displayName: 'Test Execution' },
-    { id: "10021", displayName: 'Test Plan' },
-    { id: "10020", displayName: 'Test Set' },
-    { id: "10023", displayName: 'Precondition' }
+    { id: "10012", displayName: 'Story' },
+    { id: "10013", displayName: 'Task' },
+    { id: "10015", displayName: 'Bug' },
+    { id: "10014", displayName: 'Sub-task' },
+    { id: "10000", displayName: 'Epic' }
+
+    // { id: "10022", displayName: 'Test Execution' },
+    // { id: "10021", displayName: 'Test Plan' },
+    // { id: "10020", displayName: 'Test Set' },
+    // { id: "10023", displayName: 'Precondition' }
 ]
 
 export const issueStatus = [
@@ -290,3 +304,8 @@ export const updateIssueLink = async (newParentKey, oldParentID, childKey, issue
     //add new link issue
     linkNewIssue(childKey, newParentKey, issueLinkType)
 }
+
+export const getTeams = async (title) => {
+    const rs = await invoke("getTeams", { title: title });
+    return rs.teams;
+};
