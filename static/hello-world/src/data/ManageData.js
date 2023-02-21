@@ -49,7 +49,7 @@ export const getIssueData = async (projects, linkType, issueKey, sprints, versio
             blockers: getBlockersString(element),
             sprint: element.fields[Constants.SPRINT] ? element.fields[Constants.SPRINT][0].id : null, // depend on customfield was definded
             fixVersions: element.fields.fixVersions,
-            // displayFixVersions: getfixVersions(element.fields.fixVersions),
+            project: element.fields.project,
             hasChildren: getIssueChildLink(element, linkType).length > 0,
             parentId: "" // level 1 of tree
         }
@@ -78,6 +78,8 @@ export const findChildByJql = async (projects, linkType, issueKey) => {
             issueType: element.fields.issuetype.id,
             blockers: getBlockersString(element),
             sprint: element.fields[Constants.SPRINT] ? element.fields[Constants.SPRINT][0].id : null, // depend on customfield was definded
+            fixVersions: element.fields.fixVersions,
+            project: element.fields.project,
             hasChildren: getIssueChildLink(element, linkType).length > 0,
             parentId: issueKey
         }
@@ -177,22 +179,22 @@ export const getIssueLinkType = async (props) => {
 };
 
 export const issueType = [
-    { id: 10006, name: 'Story' },
-    { id: 10009, name: 'Bug' },
-    { id: 10018, name: 'Request' },
-    { id: 10007, name: 'Task' },
-    { id: 10019, name: 'Test' },
-    { id: 10022, name: 'Test Execution' },
-    { id: 10021, name: 'Test Plan' },
-    { id: 10020, name: 'Test Set' },
-    { id: 10023, name: 'Precondition' }
+    { id: "10006", displayName: 'Story' },
+    { id: "10009", displayName: 'Bug' },
+    { id: "10018", displayName: 'Request' },
+    { id: "10007", displayName: 'Task' },
+    { id: "10019", displayName: 'Test' },
+    { id: "10022", displayName: 'Test Execution' },
+    { id: "10021", displayName: 'Test Plan' },
+    { id: "10020", displayName: 'Test Set' },
+    { id: "10023", displayName: 'Precondition' }
 ]
 
 export const issueStatus = [
-    { id: 10043, name: 'NEW' },
-    { id: 3, name: 'In Progress' },
-    { id: 6, name: 'Closed' },
-    { id: 10035, name: 'Cancelled' }
+    { id: "10043", name: 'NEW' },
+    { id: "3", name: 'In Progress' },
+    { id: "6", name: 'Closed' },
+    { id: "10035", name: 'Cancelled' }
 ]
 
 export const getListActiveUser = async (aa) => {
@@ -220,6 +222,19 @@ export const createIssue = async (body) => {
     })
     console.log(`Response: ${response.status} ${response.statusText}`);
     return await response.json()
+}
+
+export const updateIssue = async (body, issueIdOrKey) => {
+    const response = await requestJira(`/rest/api/2/issue/${issueIdOrKey}`, {
+        method: 'PUT',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: body
+    })
+    console.log(`Response: ${response.status} ${response.statusText}`);
+    return response.status
 }
 
 const deleteIssueLink = async (issueLinkID) => {

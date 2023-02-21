@@ -4,7 +4,7 @@ import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Template } from 'devextreme-react/core/template';
 import SelectBox from 'devextreme-react/select-box';
-import { getBoards, getSprints, getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, linkNewIssue } from "./data/ManageData";
+import { updateIssue, getBoards, getSprints, getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, linkNewIssue } from "./data/ManageData";
 import { findItem, mappingToBodyIssue } from "./utility/Utility";
 import { BlockerCell, FixVersionCell } from "./component/TemplateCell";
 import TextBox from 'devextreme-react/text-box';
@@ -46,10 +46,15 @@ function App() {
             dataSourceStore.reload();
         },
         update: async function (key, values) {
+            // update data on client
             var item = findItem(dataSource, key);
             if (item) {
                 Object.assign(item, values);
             }
+
+            // update data on server
+            let body = mappingToBodyIssue(item);
+            await updateIssue(JSON.stringify(body), item.id);
         },
         remove: function (key) {
             var itemWithIndex = findItem(dataSource, key, true);
@@ -247,7 +252,7 @@ function App() {
                         <Lookup
                             dataSource={issueType}
                             valueExpr="id"
-                            displayExpr="name" />
+                            displayExpr="displayName" />
                         <RequiredRule />
                     </Column>
                     <Column dataField="blockers" visible={false} cellTemplate="blockerTemplate" caption="Blockers" /> {/* cellTemplate to custom displaying */}
