@@ -1,7 +1,7 @@
 import { requestJira } from "@forge/bridge"
 import * as Constants from '../utility/Constants';
 
-const data = async (projects, linkType, issueKey, sprints) => {
+const data = async (projects, linkType, issueKey, sprints, versions) => {
     // let listProject = projects.map(element => JSON.stringify(element.key))
     // const params = issueKey === "" ? `project in (${listProject}) AND (filter != ${linkType.id})` : `project in (${listProject}) AND (filter != ${linkType.id}) AND issue =${issueKey}`;
     let params = issueKey === "" ? `project = ${projects.name} AND (filter != "${linkType.id}")` : `project = ${projects.name} AND (filter != "${linkType.id}") AND issue =${issueKey}`;
@@ -13,16 +13,23 @@ const data = async (projects, linkType, issueKey, sprints) => {
             ` AND sprint in (${sprintIDs.join(',')})`
         );
     }
+    // checking project's version
+    if(versions && versions.length > 0) {
+        const versionIDs = versions.map((e) => e.id);
+        params = params.concat(
+            ` AND fixVersion in (${versionIDs.join(',')})`
+        );
+    }
 
     const response = await requestJira(`/rest/api/2/search?jql=${params}`);
     return await response.json();
 };
 
-export const getIssueData = async (projects, linkType, issueKey, sprints) => {
+export const getIssueData = async (projects, linkType, issueKey, sprints, versions) => {
     if (projects == null && linkType == null) {
         return [];
     }
-    const result = await data(projects, linkType, issueKey, sprints);
+    const result = await data(projects, linkType, issueKey, sprints, versions);
     if (result.errorMessages) {
         return {
             error: result.errorMessages
@@ -98,6 +105,18 @@ const getBlockersString = (issue) => {
         }
     });
     return blockerToView;
+}
+
+export const getProjectVersions = async (projectIdOrKey) => {
+    const response = await requestJira(`/rest/api/2/project/${projectIdOrKey}/versions`, {
+        method: "GET",
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+        },
+    });
+    let result = await response.json();
+    return result;
 }
 
 export const getBoards = async () => {

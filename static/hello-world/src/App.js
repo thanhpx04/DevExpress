@@ -9,6 +9,7 @@ import { findItem, mappingToBodyIssue } from "./utility/Utility";
 import { BlockerCell, FixVersionCell } from "./component/TemplateCell";
 import TextBox from 'devextreme-react/text-box';
 import CustomStore from 'devextreme/data/data_source';
+import FixedVersionFilter from "./component/FixedVersionFilter";
 
 function App() {
     let [projectsDataSource, setProjectsDataSource] = useState([]);
@@ -17,6 +18,7 @@ function App() {
     let [listActiveUser, setListActiveUser] = useState([]);
     let [listSprints, setlistSprints] = useState([]);
     let [sprintSelected, setSprintSelected] = useState(null);
+    let [fixedVersionSelected, setFixedVersionSelected] = useState(null);
     let [issueLinkSelected, setIssueLinkSelected] = useState(null);
     let [issueKey, setIssueKey] = useState("");
     let [dataSource, setDataSource] = useState([]);
@@ -93,7 +95,7 @@ function App() {
             loadIndicatorVisible: true,
             buttonText: 'Searching',
         });
-        let response = await getIssueData(projectSelected, issueLinkSelected, issueKey, (sprintSelected ? [sprintSelected] : null));
+        let response = await getIssueData(projectSelected, issueLinkSelected, issueKey, (sprintSelected ? [sprintSelected] : null), (fixedVersionSelected ? [fixedVersionSelected] : null));
         setsearchButton({
             loadIndicatorVisible: false,
             buttonText: 'Search',
@@ -123,6 +125,10 @@ function App() {
 
     const onChangeSprint = (e) => {
         setSprintSelected(e.value);
+    };
+
+    const onChangeFixedVersion = (value) => {
+        setFixedVersionSelected(value);
     };
 
     const onRowExpanding = async (e) => {
@@ -164,6 +170,13 @@ function App() {
                         label='Select Sprint'
                         onValueChanged={onChangeSprint}
                     />
+                </li>
+                <li>
+                    <FixedVersionFilter
+                        projects={projectSelected}
+                        value={fixedVersionSelected}
+                        onChangeFixedVersion={onChangeFixedVersion}
+                    ></FixedVersionFilter>
                 </li>
                 <li>
                     <TextBox
