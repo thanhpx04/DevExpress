@@ -1,43 +1,39 @@
 import { invoke, requestJira } from "@forge/bridge"
 import * as Constants from '../utility/Constants';
 
-const data = async (projects, linkType, issueKey, sprints, versions, teams) => {
-    // let listProject = projects.map(element => JSON.stringify(element.key))
-    // const params = issueKey === "" ? `project in (${listProject}) AND (filter != ${linkType.id})` : `project in (${listProject}) AND (filter != ${linkType.id}) AND issue =${issueKey}`;
-    let params = issueKey === "" ? `project = ${projects.name} AND (filter != "${linkType.id}")` : `project = ${projects.name} AND (filter != "${linkType.id}") AND issue =${issueKey}`;
-
-    // checking sprint
-    if (sprints && sprints.length > 0) {
-        const sprintIDs = sprints.map((e) => e.id);
-        params = params.concat(
-            ` AND sprint in (${sprintIDs.join(',')})`
-        );
-    }
-    // checking project's version
-    if (versions && versions.length > 0) {
-        const versionIDs = versions.map((e) => e.id);
-        params = params.concat(
-            ` AND fixVersion in (${versionIDs.join(',')})`
-        );
-    }
-
-    // checking teams
-    if (teams && teams.length > 0) {
-        const teamIDs = teams.map((e) => e.id);
-        params = params.concat(
-            ` AND team in (${teamIDs.join(',')})`
-        );
-    }
-
+const fetchDataWithJQL = async (params) => {
+    console.log(params)
     const response = await requestJira(`/rest/api/2/search?jql=${params}`);
     return await response.json();
 };
 
 export const getIssueData = async (projects, linkType, issueKey, sprints, versions, teams) => {
+    let params = issueKey === "" ? `project in (${projects}) AND (filter != "${linkType.id}")` : `project in (${projects}) AND (filter != "${linkType.id}") AND issue =${issueKey}`;
+    
+    // checking sprint
+    if (sprints && sprints.length > 0) {
+        // const sprintIDs = sprints.map((e) => e.id);
+        params = params.concat(
+            ` AND sprint in (${sprints.join(',')})`
+        );
+    }
+    // checking project's version
+    if (versions && versions.length > 0) {
+        params = params.concat(
+            ` AND fixVersion in (${versions.join(',')})`
+        );
+    }
+    // checking teams
+    if (teams && teams.length > 0) {
+        params = params.concat(
+            ` AND team in (${teams.join(',')})`
+        );
+    }
+
     if (projects == null && linkType == null) {
         return [];
     }
-    const result = await data(projects, linkType, issueKey, sprints, versions, teams);
+    const result = await fetchDataWithJQL(params);
     if (result.errorMessages) {
         return {
             error: result.errorMessages
@@ -67,10 +63,9 @@ export const getIssueData = async (projects, linkType, issueKey, sprints, versio
     return issues;
 }
 
-export const findChildByJql = async (projects, linkType, issueKey) => {
+export const findChildByJql = async (project, linkType, issueKey) => {
     // let listProject = projects.map(element => JSON.stringify(element.key))
-    // let jqlFindChildByID = `project in (${listProject}) and issue in linkedIssues("${issue.key}", ${linkType.outward})`
-    let jqlFindChildByID = `project = ${projects.name} and issue in linkedIssues("${issueKey}", "${linkType.outward}")`
+    let jqlFindChildByID = `project in ("${project.id}") and issue in linkedIssues("${issueKey}", "${linkType.outward}")`
     let url = `/rest/api/2/search?jql=${jqlFindChildByID}`
     const response = await requestJira(url);
     const data = await response.json();
@@ -97,6 +92,7 @@ export const findChildByJql = async (projects, linkType, issueKey) => {
     }))
     return listChildren;
 }
+
 const getIssueChildLink = (element, linkType) => {
     let result = element.fields.issuelinks.filter(link => {
         return link.outwardIssue && link.type.outward === linkType.outward
@@ -131,18 +127,6 @@ export const getProjectVersions = async (projectIdOrKey) => {
     return result;
 }
 
-export const getBoards = async () => {
-    const response = await requestJira(`/rest/agile/1.0/board`, {
-        method: "GET",
-        headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-        },
-    });
-    let result = await response.json();
-    return result.values;
-}
-
 export const getBoardSprints = async (boardID) => {
     const response = await requestJira(`/rest/agile/1.0/board/${boardID}/sprint`, {
         method: "GET",
@@ -155,7 +139,17 @@ export const getBoardSprints = async (boardID) => {
     return result.values.filter(sprint => sprint.state === "active");
 }
 
-export const getSprints = async (boards) => {
+export const getSprints = async () => {
+    const response = await requestJira(`/rest/agile/1.0/board`, {
+        method: "GET",
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+        },
+    });
+    let data = await response.json();
+    let boards =  data.values.filter(board => board.type !== "kanban"); // need to remove kanban board due to not support sprint
+    
     const result = await Promise.all(
         boards.map(async (e) => {
             return await getBoardSprints(e.id);

@@ -3,27 +3,33 @@ import { TreeList, Editing, Button as CellButton, Column, ColumnChooser, Lookup,
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Template } from 'devextreme-react/core/template';
-import SelectBox from 'devextreme-react/select-box';
-import { getTeams, updateIssue, getBoards, getSprints, getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, linkNewIssue } from "./data/ManageData";
+import { getTeams, updateIssue, getSprints, getProjectVersions, getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, linkNewIssue } from "./data/ManageData";
 import { findItem, mappingToBodyIssue } from "./utility/Utility";
 import { BlockerCell, FixVersionCell } from "./component/TemplateCell";
 import TextBox from 'devextreme-react/text-box';
 import CustomStore from 'devextreme/data/data_source';
-import FixedVersionFilter from "./component/FixedVersionFilter";
-import TeamFilter from "./component/TeamFilter";
+import ProjectMultiSelect from "./component/ProjectMultiSelect";
+import LinkTypeSingleSelect from "./component/LinkTypeSingleSelect";
+import SprintMultiSelect from "./component/SprintMultiSelect";
+import FixedVersionMultiSelect from "./component/FixedVersionMultiSelect";
+import TeamMultiSelect from "./component/TeamMultiSelect";
 
 function App() {
-    let [projectsDataSource, setProjectsDataSource] = useState([]);
-    let [projectSelected, setProjectSelected] = useState(null);
-    let [issueLinkDataSource, setissueLinkDataSource] = useState([]);
-    let [listActiveUser, setListActiveUser] = useState([]);
-    let [listTeams, setlistTeams] = useState([]);
-    let [listSprints, setlistSprints] = useState([]);
-    let [sprintSelected, setSprintSelected] = useState(null);
-    let [fixedVersionSelected, setFixedVersionSelected] = useState(null);
-    let [teamSelected, setTeamSelected] = useState(null);
-    let [issueLinkSelected, setIssueLinkSelected] = useState(null);
+    // Filter's components
+    let [projectsSelected, setProjectsSelected] = useState([]);
+    let [linkTypeSelected, setLinkTypeSelected] = useState(null);
     let [issueKey, setIssueKey] = useState("");
+    let [sprintsSelected, setSprintsSelected] = useState([]);
+    let [fixedVersionsSelected, setFixedVersionsSelected] = useState([]);
+    let [teamsSelected, setTeamsSelected] = useState([]);
+    
+    // Cell's components
+    let [listActiveUser, setListActiveUser] = useState([]);
+    let [listSprints, setlistSprints] = useState([]);
+    let [listVersions, setlistVersions] = useState([]);
+    let [listTeams, setlistTeams] = useState([]);
+
+
     let [dataSource, setDataSource] = useState([]);
     var dataSourceStore = new CustomStore({
         key: "id",
@@ -31,12 +37,13 @@ function App() {
             return dataSource;
         },
         insert: async function (values) {
-            values.project = projectSelected;
+            console.log(values)
+            values.project = projectsSelected[0]; // get the first selected projects, need to discuss show project column?
             let body = mappingToBodyIssue(values);
             let response = await createIssue(JSON.stringify(body));
             values.id = response.key;
             if (values.parentId !== undefined) {
-                linkNewIssue(response.key, values.parentId, issueLinkSelected);
+                linkNewIssue(response.key, values.parentId, linkTypeSelected);
             }
             var parentItem = findItem(dataSource, values.parentId);
             if (!parentItem) {
@@ -73,81 +80,73 @@ function App() {
 
     useEffect(() => {
         (async () => {
-            let projects = await getAllProject();
-            let issueLinkTypes = await getIssueLinkType();
             let listActiveUser = await getListActiveUser();
-            let boards = await getBoards();
-            let sprints = await getSprints(boards);
+            let sprints = await getSprints();
+            let versions = await getProjectVersions(projectsSelected);
             let teams = await getTeams();
-            setProjectsDataSource(projects);
-            setissueLinkDataSource(
-                issueLinkTypes.map((ele) => {
-                    ele.text = `${ele.inward}\\${ele.outward}`;
-                    return ele;
-                })
-            );
             setListActiveUser(listActiveUser);
             setlistSprints(sprints);
+            setlistVersions(versions);
             setlistTeams(teams);
         })();
     }, []);
 
     const handleClickSearch = async () => {
-        if (projectSelected === null || projectSelected.name === "") {
-            alert("Please select project");
+
+        if (projectsSelected.length > 0 && linkTypeSelected != null) {
+            setsearchButton({
+                loadIndicatorVisible: true,
+                buttonText: 'Searching',
+            });
+            let response = await getIssueData(projectsSelected, linkTypeSelected, issueKey, sprintsSelected, fixedVersionsSelected, teamsSelected);
+            setsearchButton({
+                loadIndicatorVisible: false,
+                buttonText: 'Search',
+            });
+            setDataSource(response);
+            dataSourceStore.load();
+        } else {
+            alert("Please select Project and Link type!");
             return;
         }
-        if (issueLinkSelected === null || issueLinkSelected === "") {
-            alert("Please select link type of issue");
-            return;
-        }
-        setsearchButton({
-            loadIndicatorVisible: true,
-            buttonText: 'Searching',
-        });
-        let response = await getIssueData(projectSelected, issueLinkSelected, issueKey, (sprintSelected ? [sprintSelected] : null), (fixedVersionSelected ? [fixedVersionSelected] : null), (teamSelected ? [teamSelected] : null));
-        setsearchButton({
-            loadIndicatorVisible: false,
-            buttonText: 'Search',
-        });
-        setDataSource(response);
-        dataSourceStore.load();
     };
 
     const handleClickReset = () => {
-        setProjectSelected(null);
-        setIssueLinkSelected(null);
-        setSprintSelected(null);
+        setProjectsSelected([]);
+        setLinkTypeSelected([]);
         setIssueKey("");
-    };
-
-    const onProjectSelectedChanged = (e) => {
-        setProjectSelected(e.value);
-    };
-
-    const onChangeLinkIssueType = (e) => {
-        setIssueLinkSelected(e.value);
+        setSprintsSelected([]);
+        setFixedVersionsSelected([]);
+        setTeamsSelected([]);
     };
 
     const onChangeIssueKey = (e) => {
         setIssueKey(e.value);
     }
 
-    const onChangeSprint = (e) => {
-        setSprintSelected(e.value);
+    const onChangeProjects = (value) => {
+        setProjectsSelected(value);
+    };
+
+    const onChangeLinkType = (value) => {
+        setLinkTypeSelected(value);
+    };
+
+    const onChangeSprints = (value) => {
+        setSprintsSelected(value);
     };
 
     const onChangeFixedVersion = (value) => {
-        setFixedVersionSelected(value);
+        setFixedVersionsSelected(value);
     };
 
-    const onChangeTeam = (value) => {
-        setTeamSelected(value);
+    const onChangeTeams = (value) => {
+        setTeamsSelected(value);
     };
 
     const onRowExpanding = async (e) => {
-        var expandingNode = findItem(dataSource, e.key);
-        let response = await findChildByJql(projectSelected, issueLinkSelected, expandingNode.id)
+        let expandingNode = findItem(dataSource, e.key);
+        let response = await findChildByJql(expandingNode.project, linkTypeSelected, expandingNode.id)
         expandingNode.children = response;
         dataSourceStore.reload();
     }
@@ -156,47 +155,35 @@ function App() {
         <div>
             <ul className="search-criteria-list">
                 <li>
-                    <SelectBox
-                        value={projectSelected}
-                        displayExpr="name"
-                        dataSource={projectsDataSource}
-                        labelMode={"floating"}
-                        label='Select project'
-                        onValueChanged={onProjectSelectedChanged}
+                    <ProjectMultiSelect
+                        value={projectsSelected}
+                        onChangeProjects={onChangeProjects}
                     />
                 </li>
                 <li>
-                    <SelectBox
-                        value={issueLinkSelected}
-                        displayExpr="name"
-                        dataSource={issueLinkDataSource}
-                        labelMode={"floating"}
-                        label='Select Issue Link Type'
-                        onValueChanged={onChangeLinkIssueType}
+                    <LinkTypeSingleSelect
+                        value={linkTypeSelected}
+                        onChangeLinkType={onChangeLinkType}
                     />
                 </li>
                 <li>
-                    <SelectBox
-                        value={sprintSelected}
-                        displayExpr="name"
-                        dataSource={listSprints}
-                        labelMode={"floating"}
-                        label='Select Sprint'
-                        onValueChanged={onChangeSprint}
+                    <SprintMultiSelect
+                        value={sprintsSelected}
+                        onChangeSprints={onChangeSprints}
                     />
                 </li>
                 <li>
-                    <FixedVersionFilter
-                        projects={projectSelected}
-                        value={fixedVersionSelected}
+                    <FixedVersionMultiSelect
+                        projects={projectsSelected}
+                        value={fixedVersionsSelected}
                         onChangeFixedVersion={onChangeFixedVersion}
-                    ></FixedVersionFilter>
+                    />
                 </li>
                 <li>
-                    <TeamFilter
-                        value={teamSelected}
-                        onChangeTeam={onChangeTeam}
-                    ></TeamFilter>
+                    <TeamMultiSelect
+                        value={teamsSelected}
+                        onChangeTeams={onChangeTeams}
+                    />
                 </li>
                 <li>
                     <TextBox
@@ -285,12 +272,12 @@ function App() {
                         dataField="fixVersions"
                         cellTemplate="fixVersionsTemplate"
                         caption="Fix versions">
-                        {/* <Lookup
-                            dataSource={listActiveUser}
+                        <Lookup
+                            dataSource={listVersions}
                             searchEnabled={true}
-                            searchExpr="displayName"
-                            valueExpr="accountId"
-                            displayExpr="displayName" /> */}
+                            searchExpr="name"
+                            valueExpr="id"
+                            displayExpr="name" />
                     </Column>
                     <Column
                         dataField="team"

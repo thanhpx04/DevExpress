@@ -1,35 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { getTeams } from "../data/ManageData";
+import { useEffect, useState } from "react";
 import SelectBox from 'devextreme-react/select-box';
+import { getIssueLinkType } from "../data/ManageData";
 
-const TeamFilter = (props) => {
+const LinkTypeSingleSelect = (props) => {
 
-    let [value, setValue] = useState(props.value);
+    let [value, setValue] = useState();
     let [dataSource, setDataSource] = useState([]);
 
     useEffect(() => {
         (async () => {
-            let teams = await getTeams();
-            setDataSource(teams);
-            setValue("");
+            let linkTypes = await getIssueLinkType();
+            setDataSource(linkTypes);
+            // setValue("");
         })();
     }, []);
 
     const onSelectionChanged = (value) => {
-        props.onChangeTeam(value.selectedItem);
+        props.onChangeLinkType(value.selectedItem);
         setValue(value.selectedItem);
     };
-
+    
     return (
         <SelectBox
             value={value}
-            displayExpr="title"
+            displayExpr="name"
             dataSource={dataSource}
             labelMode={"floating"}
-            label='Select Team'
+            label='Select Link Type'
             onSelectionChanged={onSelectionChanged}
         />
     );
-}
-
-export default TeamFilter;
+};
+export default LinkTypeSingleSelect;

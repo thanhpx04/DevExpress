@@ -15,6 +15,7 @@ export function findItem(items, key, withIndex) {
 }
 
 export function mappingToBodyIssue(values) {
+    console.log(values)
     let result =  {
         fields: {
             summary: values.summary,
@@ -29,14 +30,14 @@ export function mappingToBodyIssue(values) {
                 id: values.issueType
             },
             project: {
-                key: values.project.key
+                id: values.project
             }
         }
     };
     result.fields[Constants.START_DATE] = values.startdate, // Start date - depend on customfield was definded
     result.fields[Constants.STORY_POINT] = values.storyPoint; // storyPoint - depend on customfield was definded
     result.fields[Constants.SPRINT] = values.sprint; // sprint - depend on customfield was definded
-    result.fields[Constants.TEAM] = values.team.toString(); // team - depend on customfield was definded
+    result.fields[Constants.TEAM] = values.team && values.team.toString(); // team - depend on customfield was definded
 
     return result;
 }
