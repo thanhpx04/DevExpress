@@ -42,7 +42,8 @@ export const getIssueData = async (projects, linkType, issueKey, sprints, versio
     let issues = [];
     await Promise.all(result.issues.map(async (element) => {
         let item = {
-            id: element.key,
+            id:element.id,
+            key: element.key,
             summary: element.fields.summary,
             startdate: element.fields[Constants.START_DATE], // depend on customfield was definded
             duedate: element.fields.duedate,
@@ -56,7 +57,7 @@ export const getIssueData = async (projects, linkType, issueKey, sprints, versio
             project: element.fields.project,
             team: element.fields[Constants.TEAM] ? Number(element.fields[Constants.TEAM].id) : null, // depend on customfield was definded
             hasChildren: getIssueChildLink(element, linkType).length > 0,
-            parentId: "" // level 1 of tree
+            parentId: "-1" // level 1 of tree
         }
         issues.push(item)
     }))
@@ -72,7 +73,8 @@ export const findChildByJql = async (project, linkType, issueKey) => {
     let listChildren = []
     await Promise.all(data.issues.map(async (element) => {
         let item = {
-            id: element.key,
+            id:element.id,
+            key: element.key,
             summary: element.fields.summary,
             startdate: element.fields[Constants.START_DATE], // depend on customfield was definded
             duedate: element.fields.duedate,
@@ -245,6 +247,12 @@ export const updateIssue = async (body, issueIdOrKey) => {
     return response.status
 }
 
+
+export const getTeams = async (title) => {
+    const rs = await invoke("getTeams", { title: title });
+    return rs.teams;
+};
+
 const deleteIssueLink = async (issueLinkID) => {
     const response = await requestJira(`/rest/api/2/issueLink/${issueLinkID}`, {
         method: 'DELETE',
@@ -258,48 +266,226 @@ const deleteIssueLink = async (issueLinkID) => {
 
 }
 
-export const linkNewIssue = async (outwardKey, inwardKey, issueLinkType) => {
-    let body = {
+// export const linkNewIssue = async (outwardKey, inwardKey, issueLinkType) => {
+//     let body = {
+//         "outwardIssue": {
+//             "key": outwardKey
+//         },
+//         "inwardIssue": {
+//             "key": inwardKey
+//         },
+//         "type": {
+//             "name": issueLinkType.name
+//         }
+//     }
+//     const response = await requestJira(`/rest/api/2/issueLink`, {
+//         method: 'POST',
+//         headers: {
+//             'Accept': 'application/json',
+//             'Content-Type': 'application/json'
+//         },
+//         body: JSON.stringify(body)
+//     })
+//     console.log(`Response: ${response.status} ${response.statusText}`);
+//     console.log(await response.text());
+// }
+
+// export const updateIssueLink = async (newParentKey, oldParentID, childKey, issueLinkType) => {
+//     if (oldParentID !== null) {
+//         const response = await requestJira(`/rest/api/2/issue/${childKey}?fields=issuelinks`);
+//         const data = await response.json()
+//         const oldIssueLinksChild = await data.fields.issuelinks
+//         const oldIssueLink = await oldIssueLinksChild.find(
+//             element =>
+//             (element.inwardIssue !== undefined &&
+//                 element.type.id === issueLinkType.id &&
+//                 element.inwardIssue.id === oldParentID));
+//         //delete old issue link
+//         deleteIssueLink(oldIssueLink.id)
+//     }
+//     //add new link issue
+//     linkNewIssue(childKey, newParentKey, issueLinkType)
+// }
+
+
+const getOldIssueLinksChild = async (fieldsLink, key) => 
+    { 
+    var itemId;  
+        for (var i = 0; i < fieldsLink.length; i++)
+        {  console.log("fieldsLink: ",fieldsLink[i]);
+            if(fieldsLink[i].hasOwnProperty("inwardIssue"))
+            {
+            if(fieldsLink[i].inwardIssue.id === key)
+                itemId = fieldsLink[i].id;
+            }
+        }
+    return itemId;
+    }
+  
+  const updateIssueLink = async (sourceData, targetData, issueLinkSelected) => 
+    {      
+      const response = await requestJira(`/rest/api/2/issue/${sourceData.id}?fields=issuelinks`); 
+      const data = await response.json()
+      const oldIssueLinksChild = await data.fields.issuelinks
+      const oldIssueLink = await getOldIssueLinksChild(oldIssueLinksChild, targetData.id);
+      deleteIssueLink(oldIssueLink)
+      //add new link issue
+      const responseLink = await requestJira(`/rest/api/2/issue/${targetData.parentId}`);
+      const dataLink = await responseLink.json();
+     savingDragandDrop(sourceData.key, dataLink.key, issueLinkSelected);
+    }
+  
+  export const savingDragandDrop = async (source, target, issueLinkSelected) => 
+  {   
+    let body =
+    {
         "outwardIssue": {
-            "key": outwardKey
+            "key": source
         },
         "inwardIssue": {
-            "key": inwardKey
+            "key": target
         },
         "type": {
-            "name": issueLinkType.name
+            "name": issueLinkSelected.name
         }
     }
-    const response = await requestJira(`/rest/api/2/issueLink`, {
+    try{
+      const response = await requestJira(`/rest/api/3/issueLink`, {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
-    })
-    console.log(`Response: ${response.status} ${response.statusText}`);
-    console.log(await response.text());
-}
-
-export const updateIssueLink = async (newParentKey, oldParentID, childKey, issueLinkType) => {
-    if (oldParentID !== null) {
-        const response = await requestJira(`/rest/api/2/issue/${childKey}?fields=issuelinks`);
-        const data = await response.json()
-        const oldIssueLinksChild = await data.fields.issuelinks
-        const oldIssueLink = await oldIssueLinksChild.find(
-            element =>
-            (element.inwardIssue !== undefined &&
-                element.type.id === issueLinkType.id &&
-                element.inwardIssue.id === oldParentID));
-        //delete old issue link
-        deleteIssueLink(oldIssueLink.id)
+       })
+      console.log(JSON.stringify(response));
+    }catch(err)
+    {
+      console.log("Error ",JSON.stringify(err));
     }
-    //add new link issue
-    linkNewIssue(childKey, newParentKey, issueLinkType)
-}
+  }
 
-export const getTeams = async (title) => {
-    const rs = await invoke("getTeams", { title: title });
-    return rs.teams;
-};
+  export const onReorderData= async (source, target, dropInsideItem, issueLinkSelected, dataSource) => 
+  { 
+    let sourceData = source;
+    let targetData = target;
+
+    let sourceIndex;
+    let tempDataSource = dataSource;
+
+    if (dropInsideItem) {
+        if(sourceData.parentId !== -1)
+        {          
+          const response = await requestJira(`/rest/api/2/issue/${sourceData.id}?fields=issuelinks`);
+          const data = await response.json()
+          const oldIssueLinksChild = await data.fields.issuelinks
+          const oldIssueLink = await getOldIssueLinksChild(oldIssueLinksChild, sourceData.parentId);
+          deleteIssueLink(oldIssueLink)
+          savingDragandDrop(sourceData.key, targetData.key, issueLinkSelected);
+
+          tempDataSource.map(e => {
+            if(e.id === sourceData.parentId && e.hasOwnProperty("children"))
+            {
+              e.children =  e.children.filter(function (ele){ return ele.key !== sourceData.key})
+                if(e.children.length === 0)
+                {
+                  e.hasChildren = false;
+                  delete e.children;
+                }
+            }
+          });
+
+          tempDataSource.map(e => {
+            if(e.key === targetData.key && e.hasOwnProperty("children"))
+              {
+                e.children.push(sourceData);
+              }
+            else if(e.key === targetData.key)
+              {
+                let finalsourceData = [];
+                finalsourceData.push(sourceData);
+
+                e.children = finalsourceData;
+                e.hasChildren = true;
+              }
+          });
+        }
+        else
+        {
+          
+          savingDragandDrop(sourceData.key, targetData.key, issueLinkSelected);
+          
+          sourceIndex = tempDataSource.map(e => e.key).indexOf(sourceData.key) 
+          sourceData.parentId = targetData.id;
+          tempDataSource = [
+            ...tempDataSource.slice(0, sourceIndex),
+            ...tempDataSource.slice(sourceIndex + 1),
+          ];
+          
+          tempDataSource.map(e => {
+            if(e.key === targetData.key && e.hasOwnProperty("children"))
+              {
+                
+                e.children.push(sourceData);
+                
+              }
+            else if(e.key === targetData.key)
+              {
+                let finalSourceData = [];
+                finalSourceData.push(sourceData);
+
+                e.children = finalSourceData;
+                e.hasChildren = true;
+                
+              }
+          });
+          
+        }
+      }
+      else {
+        if (sourceData.parentId !== targetData.parentId) 
+        {
+          if(targetData.parentId !== -1)
+          {
+            updateIssueLink(sourceData, targetData, issueLinkSelected);
+            tempDataSource.map(e => {
+              if(e.id === sourceData.parentId && e.hasOwnProperty("children"))
+                e.children.pop(sourceData);
+            });
+            sourceData = { ...sourceData, parentId: targetData.parentId };
+            tempDataSource.map(e => {
+              if(e.id === targetData.parentId && e.hasOwnProperty("children"))
+                e.children.push(sourceData);
+            });
+          }
+          else
+          {
+            const response = await requestJira(`/rest/api/2/issue/${sourceData.id}?fields=issuelinks`);
+            const data = await response.json()
+            const oldIssueLinksChild = await data.fields.issuelinks
+            const oldIssueLink = await getOldIssueLinksChild(oldIssueLinksChild, sourceData.parentId);
+            deleteIssueLink(oldIssueLink)
+            
+            tempDataSource.map(e => {
+              if(e.id === sourceData.parentId && e.hasOwnProperty("children"))
+              {
+                e.children =  e.children.filter(function (e){ return e.key !== sourceData.key})
+                if(e.children.length === 0)
+                {
+                  e.hasChildren = false;
+                  delete e.children;
+                }
+              }
+            });
+            sourceIndex = tempDataSource.map(e => e.id).indexOf(sourceData.parentId);
+            sourceData = { ...sourceData, parentId: -1 };
+            tempDataSource = [
+              ...tempDataSource.slice(0, sourceIndex+1),
+              sourceData,
+              ...tempDataSource.slice(sourceIndex + 1),
+            ];
+          }
+        }
+      }
+      return tempDataSource;
+}

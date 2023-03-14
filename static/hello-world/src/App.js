@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { TreeList, Editing, Button as CellButton, Column, ColumnChooser, Lookup, RequiredRule } from 'devextreme-react/tree-list';
+import { TreeList, Editing, Button as CellButton, Column, ColumnChooser, Lookup, RequiredRule, RowDragging, Selection } from 'devextreme-react/tree-list';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Template } from 'devextreme-react/core/template';
-import { getTeams, updateIssue, getSprints, getProjectVersions, getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, linkNewIssue } from "./data/ManageData";
+import { getTeams, updateIssue, getSprints, getProjectVersions, getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, savingDragandDrop, onReorderData } from "./data/ManageData";
 import { findItem, mappingToBodyIssue } from "./utility/Utility";
 import { BlockerCell, FixVersionCell } from "./component/TemplateCell";
 import TextBox from 'devextreme-react/text-box';
@@ -13,7 +13,7 @@ import LinkTypeSingleSelect from "./component/LinkTypeSingleSelect";
 import SprintMultiSelect from "./component/SprintMultiSelect";
 import FixedVersionMultiSelect from "./component/FixedVersionMultiSelect";
 import TeamMultiSelect from "./component/TeamMultiSelect";
-
+ 
 function App() {
     // Filter's components
     let [projectsSelected, setProjectsSelected] = useState([]);
@@ -31,6 +31,8 @@ function App() {
 
 
     let [dataSource, setDataSource] = useState([]);
+    let selectedData = [];
+
     var dataSourceStore = new CustomStore({
         key: "id",
         load: function () {
@@ -43,7 +45,7 @@ function App() {
             let response = await createIssue(JSON.stringify(body));
             values.id = response.key;
             if (values.parentId !== undefined) {
-                linkNewIssue(response.key, values.parentId, linkTypeSelected);
+                savingDragandDrop(response.key, values.parentId, linkTypeSelected);
             }
             var parentItem = findItem(dataSource, values.parentId);
             if (!parentItem) {
@@ -61,7 +63,6 @@ function App() {
             if (item) {
                 Object.assign(item, values);
             }
-
             // update data on server
             let body = mappingToBodyIssue(item);
             await updateIssue(JSON.stringify(body), item.id);
@@ -71,8 +72,12 @@ function App() {
             if (itemWithIndex) {
                 itemWithIndex.children.splice(itemWithIndex.index, 1);
             }
+        },
+        totalCount: function () {
+            return dataSource.length;
         }
     });
+
     const [searchButton, setsearchButton] = useState({
         loadIndicatorVisible: false,
         buttonText: 'Search',
@@ -151,6 +156,69 @@ function App() {
         dataSourceStore.reload();
     }
 
+    const onDragStart = async (e) => {
+        selectedData = e.component.getSelectedRowsData();
+    }
+
+    const onDragEnd = (e) => {
+        e.component.deselectAll();
+    }
+
+    const onDragChange = async (e) => {
+
+        let visibleRows = e.component.getVisibleRows(),
+            sourceNode = e.component.getNodeByKey(e.itemData.id),
+            targetNode = visibleRows[e.toIndex].node;
+
+        while (targetNode && targetNode.data) {
+            if (targetNode.data.id === sourceNode.data.id) {
+                e.cancel = true;
+                break;
+            }
+            targetNode = targetNode.parent;
+        }
+    }
+
+    const onReorder =  async (e) => {
+      
+        if (selectedData.length>0) {
+            let visibleRows = e.component.getVisibleRows(),
+                targetData = visibleRows[e.toIndex].data;
+            let dropInsideItem = e.dropInsideItem;
+            let response;
+            
+            for (var i = 0; i < selectedData.length; i++) {
+                let sourceData = selectedData[i];
+                try {
+                    if(i === 0)
+                    {
+                        response = await onReorderData(sourceData, targetData, dropInsideItem, linkTypeSelected, dataSource);
+                    }
+                    else
+                    {
+                        response = await onReorderData(sourceData, targetData, dropInsideItem, linkTypeSelected, response);
+                    }
+                    setDataSource(response);
+                    dataSourceStore.reload();
+                }
+                catch (err) {
+                    console.log("Error ", JSON.stringify(err));
+                }
+            }
+        }
+        else
+        {
+            let visibleRows = e.component.getVisibleRows(),
+                sourceData = e.itemData,
+                targetData = visibleRows[e.toIndex].data;
+            let dropInsideItem = e.dropInsideItem;
+
+            let response = await onReorderData(sourceData, targetData, dropInsideItem, linkTypeSelected, dataSource);
+            setDataSource(response);
+            dataSourceStore.reload();
+        }
+    }
+
     return (
         <div>
             <ul className="search-criteria-list">
@@ -211,7 +279,7 @@ function App() {
                     showBorders={true}
                     columnAutoWidth={true}
                     allowColumnReordering={true}
-                    rootValue=""
+                    rootValue={-1}
                     keyExpr="id"
                     parentIdExpr="parentId"
                     hasItemsExpr="hasChildren"
@@ -224,7 +292,23 @@ function App() {
                         allowAdding={true}
                         mode="row"
                     />
-                    <Column dataField="id" allowHiding={false} caption="Issue Key" allowEditing={false} />
+
+                    <Selection
+                        mode="multiple"
+                        recursive={true}
+                    />
+
+                    <RowDragging
+                        onDragChange={onDragChange}
+                        onReorder={onReorder}
+                        allowDropInsideItem={true}
+                        allowReordering={true}
+                        showDragIcons={false}
+                        onDragEnd={onDragEnd}
+                        onDragStart={onDragStart}
+                    />
+                    
+                    <Column dataField="key" allowHiding={false} caption="Issue Key" allowEditing={false} />
                     <Column dataField="summary" caption="Summary" />
                     <Column dataField="startdate" dataType="date" caption="Start Date" visible={false} />
                     <Column dataField="duedate" dataType="date" caption="Due Date" visible={false} />
