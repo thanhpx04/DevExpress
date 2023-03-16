@@ -4,8 +4,10 @@ import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Template } from 'devextreme-react/core/template';
 import { getTeams, updateIssue, getSprints, getProjectVersions, getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, savingDragandDrop, onReorderData } from "./data/ManageData";
-import { findItem, mappingToBodyIssue } from "./utility/Utility";
+import { findItem, mappingToBodyIssue, screen } from "./utility/Utility";
 import { BlockerCell, FixVersionCell } from "./component/TemplateCell";
+import DateBox from 'devextreme-react/date-box';
+import ResponsiveBox, { Row, Col, Item, Location } from "devextreme-react/responsive-box";
 import TextBox from 'devextreme-react/text-box';
 import CustomStore from 'devextreme/data/data_source';
 import ProjectMultiSelect from "./component/ProjectMultiSelect";
@@ -13,7 +15,7 @@ import LinkTypeSingleSelect from "./component/LinkTypeSingleSelect";
 import SprintMultiSelect from "./component/SprintMultiSelect";
 import FixedVersionMultiSelect from "./component/FixedVersionMultiSelect";
 import TeamMultiSelect from "./component/TeamMultiSelect";
- 
+
 function App() {
     // Filter's components
     let [projectsSelected, setProjectsSelected] = useState([]);
@@ -22,7 +24,7 @@ function App() {
     let [sprintsSelected, setSprintsSelected] = useState([]);
     let [fixedVersionsSelected, setFixedVersionsSelected] = useState([]);
     let [teamsSelected, setTeamsSelected] = useState([]);
-    
+
     // Cell's components
     let [listActiveUser, setListActiveUser] = useState([]);
     let [listSprints, setlistSprints] = useState([]);
@@ -78,11 +80,6 @@ function App() {
         }
     });
 
-    const [searchButton, setsearchButton] = useState({
-        loadIndicatorVisible: false,
-        buttonText: 'Search',
-    });
-
     useEffect(() => {
         (async () => {
             let listActiveUser = await getListActiveUser();
@@ -99,15 +96,7 @@ function App() {
     const handleClickSearch = async () => {
 
         if (projectsSelected.length > 0 && linkTypeSelected != null) {
-            setsearchButton({
-                loadIndicatorVisible: true,
-                buttonText: 'Searching',
-            });
             let response = await getIssueData(projectsSelected, linkTypeSelected, issueKey, sprintsSelected, fixedVersionsSelected, teamsSelected);
-            setsearchButton({
-                loadIndicatorVisible: false,
-                buttonText: 'Search',
-            });
             setDataSource(response);
             dataSourceStore.load();
         } else {
@@ -179,23 +168,21 @@ function App() {
         }
     }
 
-    const onReorder =  async (e) => {
-      
-        if (selectedData.length>0) {
+    const onReorder = async (e) => {
+
+        if (selectedData.length > 0) {
             let visibleRows = e.component.getVisibleRows(),
                 targetData = visibleRows[e.toIndex].data;
             let dropInsideItem = e.dropInsideItem;
             let response;
-            
+
             for (var i = 0; i < selectedData.length; i++) {
                 let sourceData = selectedData[i];
                 try {
-                    if(i === 0)
-                    {
+                    if (i === 0) {
                         response = await onReorderData(sourceData, targetData, dropInsideItem, linkTypeSelected, dataSource);
                     }
-                    else
-                    {
+                    else {
                         response = await onReorderData(sourceData, targetData, dropInsideItem, linkTypeSelected, response);
                     }
                     setDataSource(response);
@@ -206,8 +193,7 @@ function App() {
                 }
             }
         }
-        else
-        {
+        else {
             let visibleRows = e.component.getVisibleRows(),
                 sourceData = e.itemData,
                 targetData = visibleRows[e.toIndex].data;
@@ -221,57 +207,124 @@ function App() {
 
     return (
         <div>
-            <ul className="search-criteria-list">
-                <li>
-                    <ProjectMultiSelect
-                        value={projectsSelected}
-                        onChangeProjects={onChangeProjects}
-                    />
-                </li>
-                <li>
-                    <LinkTypeSingleSelect
-                        value={linkTypeSelected}
-                        onChangeLinkType={onChangeLinkType}
-                    />
-                </li>
-                <li>
-                    <SprintMultiSelect
-                        value={sprintsSelected}
-                        onChangeSprints={onChangeSprints}
-                    />
-                </li>
-                <li>
-                    <FixedVersionMultiSelect
-                        projects={projectsSelected}
-                        value={fixedVersionsSelected}
-                        onChangeFixedVersion={onChangeFixedVersion}
-                    />
-                </li>
-                <li>
-                    <TeamMultiSelect
-                        value={teamsSelected}
-                        onChangeTeams={onChangeTeams}
-                    />
-                </li>
-                <li>
-                    <TextBox
-                        value={issueKey}
-                        showClearButton={true}
-                        valueChangeEvent="keyup"
-                        onValueChanged={onChangeIssueKey}
-                        label="Issue key"
-                        labelMode={"floating"} />
-                </li>
-                <li>
-                    <Button type="default" stylingMode="contained" onClick={handleClickSearch} >
-                        <LoadIndicator className="button-indicator" height={20} width={20} visible={searchButton.loadIndicatorVisible} />
-                        <span className="dx-button-text">{searchButton.buttonText}</span>
-                    </Button>
-                </li>
-                <li>
-                    <Button text="Reset" type="default" stylingMode="contained" onClick={handleClickReset} />
-                </li>
-            </ul>
+            <div id="page">
+                <ResponsiveBox singleColumnScreen="sm" screenByWidth={screen}>
+                    <Row ratio={1}></Row>
+                    <Row ratio={1}></Row>
+                    <Row ratio={1}></Row>
+
+                    <Col ratio={1}></Col>
+                    <Col ratio={1}></Col>
+                    <Col ratio={1}></Col>
+                    <Col ratio={1}></Col>
+                    <Col ratio={1}></Col>
+                    <Col ratio={1.5}></Col>
+                    <Item>
+                        <Location row={0} col={0} colspan={6} screen="lg" />
+                        <Location row={0} col={0} colspan={6} screen="md" />
+                        <Location row={0} col={0} screen="sm" />
+                        <ul className="header item">
+                            <li className="dropdown-head">
+                                <ProjectMultiSelect
+                                    value={projectsSelected}
+                                    onChangeProjects={onChangeProjects}
+                                />
+                            </li>
+                            <li>
+                                <Button icon="search" type="default" stylingMode="contained" onClick={handleClickSearch} />
+                            </li>
+                            <li>
+                                <Button icon="pulldown" type="default" stylingMode="outlined" onClick={handleClickReset} />
+                            </li>
+                            <li>
+                                <Button icon="save" type="default" stylingMode="outlined" />
+                            </li>
+                        </ul>
+                    </Item>
+                    <Item>
+                        <Location row={1} col={0} screen="lg"></Location>
+                        <Location row={1} col={0} colspan={2} screen="md"></Location>
+                        <Location row={1} col={0} screen="sm"></Location>
+                        <ul className="item">
+                            <li className="dropdown">
+                                <LinkTypeSingleSelect
+                                    value={linkTypeSelected}
+                                    onChangeLinkType={onChangeLinkType}
+                                />
+                            </li>
+                        </ul>
+                    </Item>
+                    <Item>
+                        <Location row={1} col={1} screen="lg"></Location>
+                        <Location row={1} col={2} colspan={2} screen="md"></Location>
+                        <Location row={1} col={1} screen="sm"></Location>
+                        <ul className="item">
+                            <li className="dropdown">
+                                <TextBox
+                                    value={issueKey}
+                                    showClearButton={true}
+                                    valueChangeEvent="keyup"
+                                    onValueChanged={onChangeIssueKey}
+                                    label="Issue key"
+                                    labelMode={"floating"} />
+                            </li>
+                        </ul>
+                    </Item>
+                    <Item>
+                        <Location row={1} col={2} screen="lg"></Location>
+                        <Location row={1} col={4} colspan={2} screen="md"></Location>
+                        <Location row={1} col={2} screen="sm"></Location>
+                        <ul className="item">
+                            <li className="dropdown">
+                                <SprintMultiSelect
+                                    value={sprintsSelected}
+                                    onChangeSprints={onChangeSprints}
+                                />
+                            </li>
+                        </ul>
+                    </Item>
+                    <Item>
+                        <Location row={1} col={3} screen="lg"></Location>
+                        <Location row={2} col={0} colspan={2} screen="md"></Location>
+                        <Location row={1} col={3} screen="sm"></Location>
+                        <ul className="item">
+                            <li className="dropdown">
+                                <FixedVersionMultiSelect
+                                    projects={projectsSelected}
+                                    value={fixedVersionsSelected}
+                                    onChangeFixedVersion={onChangeFixedVersion}
+                                />
+                            </li>
+                        </ul>
+                    </Item>
+                    <Item>
+                        <Location row={1} col={4} screen="lg"></Location>
+                        <Location row={2} col={2} colspan={2} screen="md"></Location>
+                        <Location row={1} col={4} screen="sm"></Location>
+                        <ul className="item">
+                            <li className="dropdown">
+                                <TeamMultiSelect
+                                    value={teamsSelected}
+                                    onChangeTeams={onChangeTeams}
+                                />
+                            </li>
+                        </ul>
+                    </Item>
+                    <Item>
+                        <Location row={1} col={5} screen="lg"></Location>
+                        <Location row={2} col={4} colspan={2} screen="md"></Location>
+                        <Location row={1} col={5} screen="sm"></Location>
+                        <ul className="item">
+                            <li className="date-same-dropdown">
+                                    <DateBox type="date" labelMode={"floating"} label='Start' />
+                            </li>
+                            <li className="date-same-dropdown">
+                                    <DateBox type="date" labelMode={"floating"} label='End' />
+                            </li>
+                        </ul>
+                    </Item>
+                </ResponsiveBox>
+            </div>
             <div>
                 <TreeList
                     dataSource={dataSourceStore}
@@ -307,7 +360,7 @@ function App() {
                         onDragEnd={onDragEnd}
                         onDragStart={onDragStart}
                     />
-                    
+
                     <Column dataField="key" allowHiding={false} caption="Issue Key" allowEditing={false} />
                     <Column dataField="summary" caption="Summary" />
                     <Column dataField="startdate" dataType="date" caption="Start Date" visible={false} />

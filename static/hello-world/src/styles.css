@@ -6,3 +6,37 @@
     display: inline-block;
     margin: 0 6px 2px 0;
 }
+
+.demo-container,
+#page,
+#app {
+  height: 100%;
+  /* min-height: 300px; */
+}
+
+.header {
+    text-align: center;
+  }
+
+.item {
+  height: 100%;
+  list-style: none;
+}
+
+.item .dropdown-head { 
+    width: 350px;
+}
+
+.item .dropdown { 
+    width: 200px;
+}
+
+.item > li {
+    display: inline-block;
+    margin: 0 6px 2px 0;
+}
+
+.date-same-dropdown {
+    margin-top: 7.5px;
+    width: 130px;
+}
