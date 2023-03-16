@@ -37,6 +37,5 @@
 }
 
 .date-same-dropdown {
-    margin-top: 7.5px;
-    width: 130px;
+    display: inline-block;
 }

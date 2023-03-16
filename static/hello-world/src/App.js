@@ -45,7 +45,8 @@ function App() {
             values.project = projectsSelected[0]; // get the first selected projects, need to discuss show project column?
             let body = mappingToBodyIssue(values);
             let response = await createIssue(JSON.stringify(body));
-            values.id = response.key;
+            values.id = response.id;
+            values.key = response.key;
             if (values.parentId !== undefined) {
                 savingDragandDrop(response.key, values.parentId, linkTypeSelected);
             }
@@ -218,17 +219,14 @@ function App() {
                     <Col ratio={1}></Col>
                     <Col ratio={1}></Col>
                     <Col ratio={1}></Col>
-                    <Col ratio={1.5}></Col>
+                    <Col ratio={1.7}></Col>
                     <Item>
                         <Location row={0} col={0} colspan={6} screen="lg" />
                         <Location row={0} col={0} colspan={6} screen="md" />
                         <Location row={0} col={0} screen="sm" />
                         <ul className="header item">
                             <li className="dropdown-head">
-                                <ProjectMultiSelect
-                                    value={projectsSelected}
-                                    onChangeProjects={onChangeProjects}
-                                />
+                                <ProjectMultiSelect value={projectsSelected} onChangeProjects={onChangeProjects} />
                             </li>
                             <li>
                                 <Button icon="search" type="default" stylingMode="contained" onClick={handleClickSearch} />
@@ -242,24 +240,15 @@ function App() {
                         </ul>
                     </Item>
                     <Item>
-                        <Location row={1} col={0} screen="lg"></Location>
-                        <Location row={1} col={0} colspan={2} screen="md"></Location>
-                        <Location row={1} col={0} screen="sm"></Location>
-                        <ul className="item">
-                            <li className="dropdown">
-                                <LinkTypeSingleSelect
-                                    value={linkTypeSelected}
-                                    onChangeLinkType={onChangeLinkType}
-                                />
-                            </li>
-                        </ul>
+                        <Location row={1} col={0} screen="lg" />
+                        <Location row={1} col={0} colspan={2} screen="md" />
+                        <Location row={1} col={0} screen="sm" />
+                                <LinkTypeSingleSelect value={linkTypeSelected} onChangeLinkType={onChangeLinkType} />
                     </Item>
                     <Item>
-                        <Location row={1} col={1} screen="lg"></Location>
-                        <Location row={1} col={2} colspan={2} screen="md"></Location>
-                        <Location row={1} col={1} screen="sm"></Location>
-                        <ul className="item">
-                            <li className="dropdown">
+                        <Location row={1} col={1} screen="lg" />
+                        <Location row={1} col={2} colspan={2} screen="md" />
+                        <Location row={1} col={1} screen="sm" />
                                 <TextBox
                                     value={issueKey}
                                     showClearButton={true}
@@ -267,61 +256,39 @@ function App() {
                                     onValueChanged={onChangeIssueKey}
                                     label="Issue key"
                                     labelMode={"floating"} />
-                            </li>
-                        </ul>
                     </Item>
                     <Item>
-                        <Location row={1} col={2} screen="lg"></Location>
-                        <Location row={1} col={4} colspan={2} screen="md"></Location>
-                        <Location row={1} col={2} screen="sm"></Location>
-                        <ul className="item">
-                            <li className="dropdown">
-                                <SprintMultiSelect
-                                    value={sprintsSelected}
-                                    onChangeSprints={onChangeSprints}
-                                />
-                            </li>
-                        </ul>
+                        <Location row={1} col={2} screen="lg" />
+                        <Location row={1} col={4} colspan={2} screen="md" />
+                        <Location row={1} col={2} screen="sm" />
+                                <SprintMultiSelect value={sprintsSelected} onChangeSprints={onChangeSprints} />
                     </Item>
                     <Item>
-                        <Location row={1} col={3} screen="lg"></Location>
-                        <Location row={2} col={0} colspan={2} screen="md"></Location>
-                        <Location row={1} col={3} screen="sm"></Location>
-                        <ul className="item">
-                            <li className="dropdown">
-                                <FixedVersionMultiSelect
-                                    projects={projectsSelected}
-                                    value={fixedVersionsSelected}
-                                    onChangeFixedVersion={onChangeFixedVersion}
-                                />
-                            </li>
-                        </ul>
+                        <Location row={1} col={3} screen="lg" />
+                        <Location row={2} col={0} colspan={2} screen="md" />
+                        <Location row={1} col={3} screen="sm" />
+                                <FixedVersionMultiSelect projects={projectsSelected} value={fixedVersionsSelected} onChangeFixedVersion={onChangeFixedVersion} />
                     </Item>
                     <Item>
-                        <Location row={1} col={4} screen="lg"></Location>
-                        <Location row={2} col={2} colspan={2} screen="md"></Location>
-                        <Location row={1} col={4} screen="sm"></Location>
-                        <ul className="item">
-                            <li className="dropdown">
-                                <TeamMultiSelect
-                                    value={teamsSelected}
-                                    onChangeTeams={onChangeTeams}
-                                />
-                            </li>
-                        </ul>
+                        <Location row={1} col={4} screen="lg" />
+                        <Location row={2} col={2} colspan={2} screen="md" />
+                        <Location row={1} col={4} screen="sm" />
+                                <TeamMultiSelect value={teamsSelected} onChangeTeams={onChangeTeams} />
                     </Item>
                     <Item>
-                        <Location row={1} col={5} screen="lg"></Location>
-                        <Location row={2} col={4} colspan={2} screen="md"></Location>
-                        <Location row={1} col={5} screen="sm"></Location>
-                        <ul className="item">
-                            <li className="date-same-dropdown">
-                                    <DateBox type="date" labelMode={"floating"} label='Start' />
-                            </li>
-                            <li className="date-same-dropdown">
-                                    <DateBox type="date" labelMode={"floating"} label='End' />
-                            </li>
-                        </ul>
+                        <Location row={1} col={5} screen="lg" />
+                        <Location row={2} col={4} colspan={2} screen="md" />
+                        <Location row={1} col={5} screen="sm" />
+                        <div>
+                        <div className="date-same-dropdown">
+
+                                <DateBox type="date" labelMode={"floating"} label='Start' />
+                                </div>
+                        <div className="date-same-dropdown">
+                                <DateBox type="date" labelMode={"floating"} label='End' />
+                        </div>
+
+                        </div>
                     </Item>
                 </ResponsiveBox>
             </div>
