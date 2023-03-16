@@ -4,7 +4,7 @@ modules:
       resource: main
       resolver:
         function: resolver
-      title: Devexpress
+      title: Devexpress-Hierarchy
   function:
     - key: resolver
       handler: index.handler
@@ -30,4 +30,4 @@ permissions:
       backend:
         - testpluginsteam.atlassian.net
 app:
-  id: ari:cloud:ecosystem::app/6126b7b3-653b-4816-a46c-8f55bfc01cf6
+  id: ari:cloud:ecosystem::app/26a631ce-0fa0-4476-8770-2dcd08e051ff

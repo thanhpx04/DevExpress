@@ -18,7 +18,7 @@ resolver.define('getTeams', async ({ payload }) => {
         headers: {
             Accept: "*/*",
             "Content-Type": "application/json",
-            'Authorization': 'Basic ' + Buffer.from('thanhpx04@gmail.com:ATATT3xFfGF0nzpuQWzFfYl1aZhOz6HLGc7Ex-vZkj7HJKMO-uJEDFsKr33lPGJUZuzi3rcNg6JGSKTzci6c-Etm1JgOiptkVPAOxCZ5uR1SQIRHOWpFIDOm7s8L1aJV_780hMhDVb2JFhEvD3uHbAaEkVXhrAOS3x7mQYplUvPufhl8104kybM=0E168ECA').toString('base64')
+            'Authorization': 'Basic ' + Buffer.from('abhi.scorpio61195@gmail.com:ATATT3xFfGF0uXoRZxA9xiRCGDtljRvN0NA8VdeINHxOzmhWq0jxJIbSeLCEYANH_wG8OjLQr02bTuD4YQpxUW4TV4FIKCgBpTZQle5b_lJFiiFWb1_fFh_qsq0ZCSbxPnq8gmMKoddIxoyK5AZG8G9oBg0Nn_t-t8jfNCW6CNqhHdV_ml0rcbU=0668E6F3').toString('base64')
         }
     });
     const data = await response.json();
