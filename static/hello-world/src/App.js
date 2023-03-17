@@ -7,8 +7,11 @@ import { getTeams, updateIssue, getSprints, getProjectVersions, getIssueData, ge
 import { findItem, mappingToBodyIssue, screen } from "./utility/Utility";
 import { BlockerCell, FixVersionCell } from "./component/TemplateCell";
 import DateBox from 'devextreme-react/date-box';
+import { DropDownBox, DropDownOptions } from 'devextreme-react/drop-down-box';
+import { TextBox } from 'devextreme-react/text-box';
+import { formatDate } from "devextreme/localization";
 import ResponsiveBox, { Row, Col, Item, Location } from "devextreme-react/responsive-box";
-import TextBox from 'devextreme-react/text-box';
+import { Calendar } from 'devextreme-react/calendar';
 import CustomStore from 'devextreme/data/data_source';
 import ProjectMultiSelect from "./component/ProjectMultiSelect";
 import LinkTypeSingleSelect from "./component/LinkTypeSingleSelect";
@@ -17,6 +20,9 @@ import FixedVersionMultiSelect from "./component/FixedVersionMultiSelect";
 import TeamMultiSelect from "./component/TeamMultiSelect";
 
 function App() {
+
+    let startDate = new Date(2023, 3, 18);
+    let endDate = new Date(2023, 3, 23);
     // Filter's components
     let [projectsSelected, setProjectsSelected] = useState([]);
     let [linkTypeSelected, setLinkTypeSelected] = useState(null);
@@ -206,6 +212,63 @@ function App() {
         }
     }
 
+    const onValueChanged = (value) => {
+        startDate = value[0];
+        endDate = value[1];
+        console.log(startDate);
+        console.log(endDate);
+    }
+
+    const fieldRender = (value, fieldElement) => {
+        const format = "shortDate";
+        const formattedText = value.map(value => formatDate(value, format)).join(" - ");
+
+        return (
+            <div>
+                <TextBox
+                    readOnly={true}
+                    defaultValue={formattedText}
+                />
+            </div>
+        );
+    }
+    
+    // const cellTemplate = (cellInfo, index, container) => {
+    //     console.log("aa");
+    // }
+
+    const contentTemplate = (component) => {
+        const dropDownBox = component;
+        let dateRange = dropDownBox.value;  
+
+        return (
+            <Calendar
+                value={dateRange[dateRange.length - 1]}
+                cellTemplate={(cellInfo, index, container) => {
+                    console.log("aa");
+                }}
+                onValueChanged={function ({ component, value }) {
+                    const calendar = component;
+                    dateRange = dropDownBox.value;
+                    
+                    if (dateRange.length >= 2 || value < dateRange[0]) dateRange = [];
+
+                    dateRange.push(value);
+                    dropDownBox.option("value", dateRange);
+
+                    calendar.repaint();
+                    calendar.focus();
+
+                    if (dateRange.length == 2) {
+                        dropDownBox.close();
+                        dropDownBox.focus();
+                    }
+                }}
+            >
+            </Calendar>
+        );
+    }
+
     return (
         <div>
             <div id="page">
@@ -243,50 +306,62 @@ function App() {
                         <Location row={1} col={0} screen="lg" />
                         <Location row={1} col={0} colspan={2} screen="md" />
                         <Location row={1} col={0} screen="sm" />
-                                <LinkTypeSingleSelect value={linkTypeSelected} onChangeLinkType={onChangeLinkType} />
+                        <LinkTypeSingleSelect value={linkTypeSelected} onChangeLinkType={onChangeLinkType} />
                     </Item>
                     <Item>
                         <Location row={1} col={1} screen="lg" />
                         <Location row={1} col={2} colspan={2} screen="md" />
                         <Location row={1} col={1} screen="sm" />
-                                <TextBox
-                                    value={issueKey}
-                                    showClearButton={true}
-                                    valueChangeEvent="keyup"
-                                    onValueChanged={onChangeIssueKey}
-                                    label="Issue key"
-                                    labelMode={"floating"} />
+                        <TextBox
+                            value={issueKey}
+                            showClearButton={true}
+                            valueChangeEvent="keyup"
+                            onValueChanged={onChangeIssueKey}
+                            label="Issue key"
+                            labelMode={"floating"} />
                     </Item>
                     <Item>
                         <Location row={1} col={2} screen="lg" />
                         <Location row={1} col={4} colspan={2} screen="md" />
                         <Location row={1} col={2} screen="sm" />
-                                <SprintMultiSelect value={sprintsSelected} onChangeSprints={onChangeSprints} />
+                        <SprintMultiSelect value={sprintsSelected} onChangeSprints={onChangeSprints} />
                     </Item>
                     <Item>
                         <Location row={1} col={3} screen="lg" />
                         <Location row={2} col={0} colspan={2} screen="md" />
                         <Location row={1} col={3} screen="sm" />
-                                <FixedVersionMultiSelect projects={projectsSelected} value={fixedVersionsSelected} onChangeFixedVersion={onChangeFixedVersion} />
+                        <FixedVersionMultiSelect projects={projectsSelected} value={fixedVersionsSelected} onChangeFixedVersion={onChangeFixedVersion} />
                     </Item>
                     <Item>
                         <Location row={1} col={4} screen="lg" />
                         <Location row={2} col={2} colspan={2} screen="md" />
                         <Location row={1} col={4} screen="sm" />
-                                <TeamMultiSelect value={teamsSelected} onChangeTeams={onChangeTeams} />
+                        <TeamMultiSelect value={teamsSelected} onChangeTeams={onChangeTeams} />
                     </Item>
                     <Item>
                         <Location row={1} col={5} screen="lg" />
                         <Location row={2} col={4} colspan={2} screen="md" />
                         <Location row={1} col={5} screen="sm" />
                         <div>
-                        <div className="date-same-dropdown">
+                            <DropDownBox
+                                value={[startDate, endDate]}
+                                label="Create Date"
+                                labelMode={"floating"}
+                                onValueChanged={onValueChanged}
+                                fieldRender={fieldRender}
+                                contentTemplate={contentTemplate}
+                            >
+                                <DropDownOptions
+                                    width="auto"
+                                />
+                            </DropDownBox>
+                            {/* <div className="date-same-dropdown">
 
                                 <DateBox type="date" labelMode={"floating"} label='Start' />
                                 </div>
                         <div className="date-same-dropdown">
                                 <DateBox type="date" labelMode={"floating"} label='End' />
-                        </div>
+                        </div> */}
 
                         </div>
                     </Item>
