@@ -47,3 +47,21 @@ export function screen(width) {
     if (width < Constants.LARGE_SCREEN && width > Constants.MIDDLE_SCREEN) return "md";
     if (width < Constants.MIDDLE_SCREEN) return "sm";
 }
+
+export const getColorByIssueType = (element) => {
+    let result = '';
+    switch (element.fields.issuetype.id) {
+        case Constants.ISSUE_TYPE_EPIC_ID:
+            result = 'orange'
+            break;
+        case Constants.ISSUE_TYPE_STORY_ID:
+            result = 'green'
+            break;
+        case Constants.ISSUE_TYPE_TASK_ID:
+            result = 'blue'
+            break;
+        default:
+            break;
+    }
+    return result;
+}

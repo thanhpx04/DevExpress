@@ -1,5 +1,6 @@
 import { invoke, requestJira } from "@forge/bridge"
 import * as Constants from '../utility/Constants';
+import { getColorByIssueType } from '../utility/Utility';
 
 const fetchDataWithJQL = async (params) => {
     console.log(params)
@@ -45,8 +46,9 @@ export const getIssueData = async (projects, linkType, issueKey, sprints, versio
             id:element.id,
             key: element.key,
             summary: element.fields.summary,
-            startdate: element.fields[Constants.START_DATE], // depend on customfield was definded
-            duedate: element.fields.duedate,
+            title: element.fields.summary,
+            startdate: new Date(element.fields[Constants.START_DATE]), // depend on customfield was definded
+            duedate: new Date(element.fields.duedate),
             assignee: element.fields.assignee ? element.fields.assignee.accountId : null,
             status: element.fields.status.name,
             storyPoint: element.fields[Constants.STORY_POINT], // depend on customfield was definded
@@ -57,16 +59,18 @@ export const getIssueData = async (projects, linkType, issueKey, sprints, versio
             project: element.fields.project,
             team: element.fields[Constants.TEAM] ? Number(element.fields[Constants.TEAM].id) : null, // depend on customfield was definded
             hasChildren: getIssueChildLink(element, linkType).length > 0,
-            parentId: "-1" // level 1 of tree
+            parentId: "0", // level 1 of tree
+            color: getColorByIssueType(element),
+            progress: 0
         }
         issues.push(item)
     }))
     return issues;
 }
 
-export const findChildByJql = async (project, linkType, issueKey) => {
+export const findChildByJql = async (project, linkType, issueId) => {
     // let listProject = projects.map(element => JSON.stringify(element.key))
-    let jqlFindChildByID = `project in ("${project.id}") and issue in linkedIssues("${issueKey}", "${linkType.outward}")`
+    let jqlFindChildByID = `project in ("${project.id}") and issue in linkedIssues("${issueId}", "${linkType.outward}")`
     let url = `/rest/api/2/search?jql=${jqlFindChildByID}`
     const response = await requestJira(url);
     const data = await response.json();
@@ -76,8 +80,9 @@ export const findChildByJql = async (project, linkType, issueKey) => {
             id:element.id,
             key: element.key,
             summary: element.fields.summary,
-            startdate: element.fields[Constants.START_DATE], // depend on customfield was definded
-            duedate: element.fields.duedate,
+            title: element.fields.summary,
+            startdate: new Date(element.fields[Constants.START_DATE]), // depend on customfield was definded
+            duedate: new Date(element.fields.duedate),
             assignee: element.fields.assignee ? element.fields.assignee.accountId : null,
             status: element.fields.status.name,
             storyPoint: element.fields[Constants.STORY_POINT], // depend on customfield was definded
@@ -88,7 +93,9 @@ export const findChildByJql = async (project, linkType, issueKey) => {
             project: element.fields.project,
             team: element.fields[Constants.TEAM] ? element.fields[Constants.TEAM].id : null, // depend on customfield was definded
             hasChildren: getIssueChildLink(element, linkType).length > 0,
-            parentId: issueKey
+            parentId: issueId,
+            color: getColorByIssueType(element),
+            progress: 0
         }
         listChildren.push(item);
     }))
@@ -117,8 +124,9 @@ const getBlockersString = (issue) => {
     return blockerToView;
 }
 
-export const getProjectVersions = async (projectIdOrKey) => {
-    const response = await requestJira(`/rest/api/2/project/${projectIdOrKey}/versions`, {
+export const getProjectVersions = async (projectIdOrKey, startAt, maxResults) => {
+    let params = `?startAt=${startAt}&maxResults=${maxResults}`
+    const response = await requestJira(`/rest/api/2/project/${projectIdOrKey}/version${params}`, {
         method: "GET",
         headers: {
             Accept: "application/json",
@@ -489,3 +497,71 @@ const getOldIssueLinksChild = async (fieldsLink, key) =>
       }
       return tempDataSource;
 }
+
+export const dependencies = [
+    {
+        'id': 0,
+        'predecessorId': 'TS-5',
+        'successorId': 'TS-8',
+        'type': 0
+    },{
+        'id': 1,
+        'predecessorId': 'TS-8',
+        'successorId': 'TS-9',
+        'type': 0
+    },{
+        'id': 2,
+        'predecessorId': 'TS-1',
+        'successorId': 'TS-6',
+        'type': 0
+    }, {
+        'id': 3,
+        'predecessorId': 'TS-6',
+        'successorId': 'TS-7',
+        'type': 0
+    }, {
+        'id': 4,
+        'predecessorId': 'TS-7',
+        'successorId': 'TS-2',
+        'type': 0
+    }, {
+        'id': 5,
+        'predecessorId': 'TS-2',
+        'successorId': 'TS-4',
+        'type': 0
+    }, {
+        'id': 6,
+        'predecessorId': 'TS-4',
+        'successorId': 'TS-3',
+        'type': 0
+    }
+];
+
+export const resources = [
+    // {
+    //     'id': 1,
+    //     'text': 'Management'
+    // }, {
+    //     'id': 2,
+    //     'text': 'Project Manager'
+    // }, {
+    //     'id': 3,
+    //     'text': 'Analyst'
+    // }
+];
+
+export const resourceAssignments = [
+    // {
+    //     'id': 0,
+    //     'taskId': 1,
+    //     'resourceId': 1
+    // }, {
+    //     'id': 1,
+    //     'taskId': 2,
+    //     'resourceId': 2
+    // }, {
+    //     'id': 2,
+    //     'taskId': 3,
+    //     'resourceId': 3
+    // }
+];

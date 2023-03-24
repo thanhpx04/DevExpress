@@ -1,28 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { TreeList, Editing, Button as CellButton, Column, ColumnChooser, Lookup, RequiredRule, RowDragging, Selection } from 'devextreme-react/tree-list';
+import Gantt, { Tasks, Dependencies, Resources, ResourceAssignments, Column as GanttColumn, Editing as GanttEditing, Toolbar, Item as GanttItem, Validation, } from "devextreme-react/gantt";
 import { Button } from 'devextreme-react/button';
-import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Template } from 'devextreme-react/core/template';
-import { getTeams, updateIssue, getSprints, getProjectVersions, getIssueData, getAllProject, getIssueLinkType, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, savingDragandDrop, onReorderData } from "./data/ManageData";
+import { getTeams, updateIssue, getSprints, getProjectVersions, getIssueData, findChildByJql, issueType, issueStatus, getListActiveUser, createIssue, savingDragandDrop, onReorderData, dependencies, resources, resourceAssignments } from "./data/ManageData";
 import { findItem, mappingToBodyIssue, screen } from "./utility/Utility";
 import { BlockerCell, FixVersionCell } from "./component/TemplateCell";
-import DateBox from 'devextreme-react/date-box';
-import { DropDownBox, DropDownOptions } from 'devextreme-react/drop-down-box';
 import { TextBox } from 'devextreme-react/text-box';
-import { formatDate } from "devextreme/localization";
 import ResponsiveBox, { Row, Col, Item, Location } from "devextreme-react/responsive-box";
-import { Calendar } from 'devextreme-react/calendar';
 import CustomStore from 'devextreme/data/data_source';
 import ProjectMultiSelect from "./component/ProjectMultiSelect";
 import LinkTypeSingleSelect from "./component/LinkTypeSingleSelect";
 import SprintMultiSelect from "./component/SprintMultiSelect";
 import FixedVersionMultiSelect from "./component/FixedVersionMultiSelect";
 import TeamMultiSelect from "./component/TeamMultiSelect";
+import DateRange from "./component/DateRange";
+import TabPanel, { Item as ItemTab } from "devextreme-react/tab-panel";
 
 function App() {
-
-    let startDate = new Date(2023, 3, 18);
-    let endDate = new Date(2023, 3, 23);
     // Filter's components
     let [projectsSelected, setProjectsSelected] = useState([]);
     let [linkTypeSelected, setLinkTypeSelected] = useState(null);
@@ -30,12 +25,30 @@ function App() {
     let [sprintsSelected, setSprintsSelected] = useState([]);
     let [fixedVersionsSelected, setFixedVersionsSelected] = useState([]);
     let [teamsSelected, setTeamsSelected] = useState([]);
+    let [createDateRange, setCreateDateRange] = useState([]);
 
     // Cell's components
     let [listActiveUser, setListActiveUser] = useState([]);
     let [listSprints, setlistSprints] = useState([]);
     let [listVersions, setlistVersions] = useState([]);
     let [listTeams, setlistTeams] = useState([]);
+
+    // Timeline components
+    let coloredDependencies = ["2", "3", "4", "5", "6"];
+
+    const critical = {
+        text: 'Critical',
+        // icon: 'info',
+        stylingMode: 'text',
+        onClick: () => { onCriticalClick(); },
+    };
+
+    const onCriticalClick = () => {
+        console.log(dataSource)
+        coloredDependencies.forEach(d => {
+            document.querySelectorAll(`div[dependency-id='${d}']`).forEach((n) => (n.style.borderColor = "red"));
+        })
+    };
 
 
     let [dataSource, setDataSource] = useState([]);
@@ -47,7 +60,6 @@ function App() {
             return dataSource;
         },
         insert: async function (values) {
-            console.log(values)
             values.project = projectsSelected[0]; // get the first selected projects, need to discuss show project column?
             let body = mappingToBodyIssue(values);
             let response = await createIssue(JSON.stringify(body));
@@ -101,7 +113,7 @@ function App() {
     }, []);
 
     const handleClickSearch = async () => {
-
+        console.log(createDateRange)
         if (projectsSelected.length > 0 && linkTypeSelected != null) {
             let response = await getIssueData(projectsSelected, linkTypeSelected, issueKey, sprintsSelected, fixedVersionsSelected, teamsSelected);
             setDataSource(response);
@@ -143,6 +155,11 @@ function App() {
 
     const onChangeTeams = (value) => {
         setTeamsSelected(value);
+    };
+
+    const onChangeCreateDate = (e) => {
+        console.log(e)
+        // setCreateDateRange(e.value);
     };
 
     const onRowExpanding = async (e) => {
@@ -212,63 +229,6 @@ function App() {
         }
     }
 
-    const onValueChanged = (value) => {
-        startDate = value[0];
-        endDate = value[1];
-        console.log(startDate);
-        console.log(endDate);
-    }
-
-    const fieldRender = (value, fieldElement) => {
-        const format = "shortDate";
-        const formattedText = value.map(value => formatDate(value, format)).join(" - ");
-
-        return (
-            <div>
-                <TextBox
-                    readOnly={true}
-                    defaultValue={formattedText}
-                />
-            </div>
-        );
-    }
-    
-    // const cellTemplate = (cellInfo, index, container) => {
-    //     console.log("aa");
-    // }
-
-    const contentTemplate = (component) => {
-        const dropDownBox = component;
-        let dateRange = dropDownBox.value;  
-
-        return (
-            <Calendar
-                value={dateRange[dateRange.length - 1]}
-                cellTemplate={(cellInfo, index, container) => {
-                    console.log("aa");
-                }}
-                onValueChanged={function ({ component, value }) {
-                    const calendar = component;
-                    dateRange = dropDownBox.value;
-                    
-                    if (dateRange.length >= 2 || value < dateRange[0]) dateRange = [];
-
-                    dateRange.push(value);
-                    dropDownBox.option("value", dateRange);
-
-                    calendar.repaint();
-                    calendar.focus();
-
-                    if (dateRange.length == 2) {
-                        dropDownBox.close();
-                        dropDownBox.focus();
-                    }
-                }}
-            >
-            </Calendar>
-        );
-    }
-
     return (
         <div>
             <div id="page">
@@ -282,7 +242,7 @@ function App() {
                     <Col ratio={1}></Col>
                     <Col ratio={1}></Col>
                     <Col ratio={1}></Col>
-                    <Col ratio={1.7}></Col>
+                    <Col ratio={1}></Col>
                     <Item>
                         <Location row={0} col={0} colspan={6} screen="lg" />
                         <Location row={0} col={0} colspan={6} screen="md" />
@@ -342,143 +302,174 @@ function App() {
                         <Location row={1} col={5} screen="lg" />
                         <Location row={2} col={4} colspan={2} screen="md" />
                         <Location row={1} col={5} screen="sm" />
-                        <div>
-                            <DropDownBox
-                                value={[startDate, endDate]}
-                                label="Create Date"
-                                labelMode={"floating"}
-                                onValueChanged={onValueChanged}
-                                fieldRender={fieldRender}
-                                contentTemplate={contentTemplate}
-                            >
-                                <DropDownOptions
-                                    width="auto"
-                                />
-                            </DropDownBox>
-                            {/* <div className="date-same-dropdown">
-
-                                <DateBox type="date" labelMode={"floating"} label='Start' />
-                                </div>
-                        <div className="date-same-dropdown">
-                                <DateBox type="date" labelMode={"floating"} label='End' />
-                        </div> */}
-
-                        </div>
+                        <DateRange value={createDateRange} onChangeCreateDate={onChangeCreateDate} />
                     </Item>
                 </ResponsiveBox>
             </div>
             <div>
-                <TreeList
-                    dataSource={dataSourceStore}
-                    showRowLines={true}
-                    showBorders={true}
-                    columnAutoWidth={true}
-                    allowColumnReordering={true}
-                    rootValue={-1}
-                    keyExpr="id"
-                    parentIdExpr="parentId"
-                    hasItemsExpr="hasChildren"
-                    itemsExpr="children"
-                    dataStructure="tree"
-                    onRowExpanding={onRowExpanding}
-                >
-                    <Editing
-                        allowUpdating={true}
-                        allowAdding={true}
-                        mode="row"
-                    />
+                <TabPanel >
+                    <ItemTab title="Hierarchy" >
+                        <TreeList
+                            dataSource={dataSourceStore}
+                            showRowLines={true}
+                            showBorders={true}
+                            columnAutoWidth={true}
+                            allowColumnReordering={true}
+                            rootValue={-1}
+                            keyExpr="id"
+                            parentIdExpr="parentId"
+                            hasItemsExpr="hasChildren"
+                            itemsExpr="children"
+                            dataStructure="tree"
+                            onRowExpanding={onRowExpanding}
+                        >
+                            <Editing
+                                allowUpdating={true}
+                                allowAdding={true}
+                                mode="row"
+                            />
 
-                    <Selection
-                        mode="multiple"
-                        recursive={true}
-                    />
+                            <Selection
+                                mode="multiple"
+                                recursive={true}
+                            />
 
-                    <RowDragging
-                        onDragChange={onDragChange}
-                        onReorder={onReorder}
-                        allowDropInsideItem={true}
-                        allowReordering={true}
-                        showDragIcons={false}
-                        onDragEnd={onDragEnd}
-                        onDragStart={onDragStart}
-                    />
+                            <RowDragging
+                                onDragChange={onDragChange}
+                                onReorder={onReorder}
+                                allowDropInsideItem={true}
+                                allowReordering={true}
+                                showDragIcons={false}
+                                onDragEnd={onDragEnd}
+                                onDragStart={onDragStart}
+                            />
 
-                    <Column dataField="key" allowHiding={false} caption="Issue Key" allowEditing={false} />
-                    <Column dataField="summary" caption="Summary" />
-                    <Column dataField="startdate" dataType="date" caption="Start Date" visible={false} />
-                    <Column dataField="duedate" dataType="date" caption="Due Date" visible={false} />
-                    <Column
-                        dataField="assignee"
-                        caption="Assignee">
-                        <Lookup
-                            dataSource={listActiveUser}
-                            searchEnabled={true}
-                            searchExpr="displayName"
-                            valueExpr="accountId"
-                            displayExpr="displayName" />
-                    </Column>
-                    <Column
-                        dataField="status"
-                        caption="Status"
-                        visible={false}>
-                        <Lookup
-                            dataSource={issueStatus}
-                            valueExpr="id"
-                            displayExpr="name" />
-                    </Column>
-                    <Column dataField="storyPoint" dataType="number" visible={false} caption="Story Point" /> {/* visible to defind column is displayed */}
-                    <Column
-                        dataField="issueType"
-                        caption="Issue Type">
-                        <Lookup
-                            dataSource={issueType}
-                            valueExpr="id"
-                            displayExpr="displayName" />
-                        <RequiredRule />
-                    </Column>
-                    <Column dataField="blockers" visible={false} cellTemplate="blockerTemplate" caption="Blockers" /> {/* cellTemplate to custom displaying */}
-                    <Column
-                        dataField="sprint"
-                        caption="Sprint">
-                        <Lookup
-                            dataSource={listSprints}
-                            searchEnabled={true}
-                            searchExpr="name"
-                            valueExpr="id"
-                            displayExpr="name" />
-                    </Column>
-                    <Column
-                        dataField="fixVersions"
-                        cellTemplate="fixVersionsTemplate"
-                        caption="Fix versions">
-                        <Lookup
-                            dataSource={listVersions}
-                            searchEnabled={true}
-                            searchExpr="name"
-                            valueExpr="id"
-                            displayExpr="name" />
-                    </Column>
-                    <Column
-                        dataField="team"
-                        caption="Team">
-                        <Lookup
-                            dataSource={listTeams}
-                            searchEnabled={true}
-                            searchExpr="title"
-                            valueExpr="id"
-                            displayExpr="title" />
-                    </Column>
-                    <Column type="buttons" caption="Actions">
-                        <CellButton name="add" />
-                        <CellButton name="edit" />
-                        <CellButton name="save" />
-                        <CellButton name="cancel" />
-                    </Column>
-                    <ColumnChooser enabled={true} allowSearch={true} mode={"select"} />
-                    <Template name="blockerTemplate" render={BlockerCell} />
-                    <Template name="fixVersionsTemplate" render={FixVersionCell} />
-                </TreeList>
+                            <Column dataField="key" allowHiding={false} caption="Issue Key" allowEditing={false} />
+                            <Column dataField="summary" caption="Summary" />
+                            <Column dataField="startdate" dataType="date" caption="Start Date" visible={false} />
+                            <Column dataField="duedate" dataType="date" caption="Due Date" visible={false} />
+                            <Column
+                                dataField="assignee"
+                                caption="Assignee">
+                                <Lookup
+                                    dataSource={listActiveUser}
+                                    searchEnabled={true}
+                                    searchExpr="displayName"
+                                    valueExpr="accountId"
+                                    displayExpr="displayName" />
+                            </Column>
+                            <Column
+                                dataField="status"
+                                caption="Status"
+                                visible={false}>
+                                <Lookup
+                                    dataSource={issueStatus}
+                                    valueExpr="id"
+                                    displayExpr="name" />
+                            </Column>
+                            <Column dataField="storyPoint" dataType="number" visible={false} caption="Story Point" /> {/* visible to defind column is displayed */}
+                            <Column
+                                dataField="issueType"
+                                caption="Issue Type">
+                                <Lookup
+                                    dataSource={issueType}
+                                    valueExpr="id"
+                                    displayExpr="displayName" />
+                                <RequiredRule />
+                            </Column>
+                            <Column dataField="blockers" visible={false} cellTemplate="blockerTemplate" caption="Blockers" /> {/* cellTemplate to custom displaying */}
+                            <Column
+                                dataField="sprint"
+                                caption="Sprint">
+                                <Lookup
+                                    dataSource={listSprints}
+                                    searchEnabled={true}
+                                    searchExpr="name"
+                                    valueExpr="id"
+                                    displayExpr="name" />
+                            </Column>
+                            <Column
+                                dataField="fixVersions"
+                                cellTemplate="fixVersionsTemplate"
+                                caption="Fix versions">
+                                <Lookup
+                                    dataSource={listVersions}
+                                    searchEnabled={true}
+                                    searchExpr="name"
+                                    valueExpr="id"
+                                    displayExpr="name" />
+                            </Column>
+                            <Column
+                                dataField="team"
+                                caption="Team">
+                                <Lookup
+                                    dataSource={listTeams}
+                                    searchEnabled={true}
+                                    searchExpr="title"
+                                    valueExpr="id"
+                                    displayExpr="title" />
+                            </Column>
+                            <Column type="buttons" caption="Actions">
+                                <CellButton name="add" />
+                                <CellButton name="edit" />
+                                <CellButton name="save" />
+                                <CellButton name="cancel" />
+                            </Column>
+                            <ColumnChooser enabled={true} allowSearch={true} mode={"select"} />
+                            <Template name="blockerTemplate" render={BlockerCell} />
+                            <Template name="fixVersionsTemplate" render={FixVersionCell} />
+                        </TreeList>
+                    </ItemTab>
+                    <ItemTab title="Timeline">
+                        <Gantt
+                            taskListWidth={500}
+                            scaleType="weeks" //'auto' | 'minutes' | 'hours' | 'sixHours' | 'days' | 'weeks' | 'months' | 'quarters' | 'years';
+                            // height={600}
+                        >
+                            <Tasks
+                                dataSource={dataSourceStore}
+                                keyExpr="key"
+                                parentIdExpr="parentId"
+                                progressExpr="progress"
+                                startExpr="startdate"
+                                endExpr="duedate"
+                                colorExpr="color"
+                            />
+                            <Dependencies dataSource={dependencies} />
+                            <Resources dataSource={resources} />
+                            <ResourceAssignments dataSource={resourceAssignments} />
+
+                            <Toolbar>
+                                <GanttItem name="undo" />
+                                <GanttItem name="redo" />
+                                <GanttItem name="separator" />
+                                <GanttItem name="collapseAll" />
+                                <GanttItem name="expandAll" />
+                                <GanttItem name="separator" />
+                                <GanttItem name="addTask" />
+                                <GanttItem name="deleteTask" />
+                                <GanttItem name="separator" />
+                                <GanttItem name="zoomIn" />
+                                <GanttItem name="zoomOut" />
+                                <GanttItem name="separator" />
+                                <GanttItem name="showResources" />
+                                <GanttItem name="showDependencies" />
+                                <GanttItem name="separator" />
+                                <GanttItem widget="dxButton" options={critical} />
+                            </Toolbar>
+
+                            <GanttColumn dataField="key" caption="Issue Key" />
+                            <GanttColumn dataField="title" caption="Summary" width={300} />
+                            <GanttColumn dataField="startdate" caption="Start Date" />
+                            <GanttColumn dataField="duedate" caption="Due Date" />
+
+                            <Validation autoUpdateParentTasks />
+                            <GanttEditing enabled />
+                        </Gantt>
+                    </ItemTab>
+                </TabPanel>
             </div>
+
         </div>
     );
 }
