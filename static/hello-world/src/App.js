@@ -44,12 +44,10 @@ function App() {
     };
 
     const onCriticalClick = () => {
-        console.log(dataSource)
         coloredDependencies.forEach(d => {
             document.querySelectorAll(`div[dependency-id='${d}']`).forEach((n) => (n.style.borderColor = "red"));
         })
     };
-
 
     let [dataSource, setDataSource] = useState([]);
     let selectedData = [];

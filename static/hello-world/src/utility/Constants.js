@@ -7,3 +7,4 @@ export const ISSUE_TYPE_STORY_ID = "10012"
 export const ISSUE_TYPE_EPIC_ID = "10000"
 export const LARGE_SCREEN = 1400
 export const MIDDLE_SCREEN = 800
+export const DROPDOWN_LIMIT = 10

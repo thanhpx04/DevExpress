@@ -3,6 +3,7 @@ import { getProjectVersions } from "../data/ManageData";
 import TreeView from 'devextreme-react/tree-view';
 import DropDownBox from 'devextreme-react/drop-down-box';
 import CustomStore from 'devextreme/data/data_source';
+import * as Constants from '../utility/Constants';
 
 const FixedVersionMultiSelect = (props) => {
 
@@ -10,9 +11,10 @@ const FixedVersionMultiSelect = (props) => {
     let [treeDataSource, setTreeDataSource] = useState([]);
     let treeView = null;
     let listProject = props.projects;
+
     // control variables
     let currentPage = 1;
-    const limit = 10;
+    const limit = Constants.DROPDOWN_LIMIT;
     let total = 0;
 
     var treeDataSourceStore = new CustomStore({
@@ -28,20 +30,6 @@ const FixedVersionMultiSelect = (props) => {
             return treeDataSource.length;
         }
     });
-
-    useEffect(() => {
-        (async () => {
-            if (listProject.length > 0) {
-                let versions = await getProjectVersions(listProject, 0, 10);
-                versions && setTreeDataSource(versions.values);
-                treeDataSourceStore.load();
-                setTreeBoxValue([]);
-
-                // setTimeout(() => { 
-                // }, 5000);
-            }
-        })();
-    }, [props.projects]);
 
     const syncTreeViewSelection = (e) => {
         const treeViewConst = (e.component.selectItem && e.component)
@@ -65,13 +53,32 @@ const FixedVersionMultiSelect = (props) => {
     }
 
     const treeViewItemSelectionChanged = async (e) => {
-        console.log("bbb")
         setTreeBoxValue(e.component.getSelectedNodeKeys());
-        let versionsPage2 = await getProjectVersions(listProject, 10, 10);
-        console.log(versionsPage2.values)
-        console.log(treeDataSource)
-        versionsPage2 && treeDataSource.push(...versionsPage2.values);
-        treeDataSourceStore.reload();
+    }
+
+    const hasMoreData = (page, limit, total) => {
+        const startIndex = (page - 1) * limit + 1;
+        return total === 0 || startIndex < total;
+    };
+
+    const onScrollHandler = async (event) => {
+        const {
+            scrollTop,
+            scrollHeight,
+            clientHeight
+        } = event.currentTarget;
+
+        if (scrollTop + clientHeight >= scrollHeight - 5 && hasMoreData(currentPage, limit, total)) {
+            const startAt = (currentPage - 1) * limit + 1;
+            let versions = await getProjectVersions(listProject, startAt, limit);
+            console.log("aa")
+
+            if (versions) {
+                treeDataSource.push(...versions.values);
+                treeDataSourceStore.reload();
+                console.log(treeDataSource)
+            }
+        }
     }
 
     const treeViewRender = () => {
@@ -83,16 +90,7 @@ const FixedVersionMultiSelect = (props) => {
                     height: '250px',
                     overflow: 'scroll',
                 }}
-                onScroll={(event) => {
-                    const {
-                        scrollTop,
-                        scrollHeight,
-                        clientHeight
-                    } = event.currentTarget;
-                    console.log(scrollTop);
-                    console.log(scrollHeight);
-                    console.log(clientHeight);
-                }}
+                onScroll={onScrollHandler}
             >
                 <TreeView
                     dataSource={treeDataSourceStore}
@@ -109,6 +107,23 @@ const FixedVersionMultiSelect = (props) => {
             </div>
         );
     }
+
+    useEffect(() => {
+        (async () => {
+            if (listProject && listProject.length > 0) {
+                const startAt = (currentPage - 1) * limit + 1;
+                let versions = await getProjectVersions(listProject, startAt, limit);
+
+                if (versions) {
+                    // update the total
+                    total = versions.total;
+                    setTreeDataSource(versions.values);
+                    treeDataSourceStore.load();
+                    setTreeBoxValue([]);
+                }
+            }
+        })();
+    }, [props.projects]);
 
     return (
         <DropDownBox
