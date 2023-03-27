@@ -61,7 +61,7 @@ const FixedVersionMultiSelect = (props) => {
         return total === 0 || startIndex < total;
     };
 
-    const onScrollHandler = async (event) => {
+    const onScrollHandler = (event) => {
         const {
             scrollTop,
             scrollHeight,
@@ -69,24 +69,26 @@ const FixedVersionMultiSelect = (props) => {
         } = event.currentTarget;
 
         if (scrollTop + clientHeight >= scrollHeight - 5 && hasMoreData(currentPage, limit, total)) {
-            const startAt = (currentPage - 1) * limit + 1;
-            let versions = await getProjectVersions(listProject, startAt, limit);
+            currentPage++;
             console.log("aa")
+            const startAt = (currentPage - 1) * limit + 1;
+            getProjectVersions(listProject, startAt, limit).then((versions) => {
+                if (versions && versions.values.length > 0) {
+                    if(!treeDataSource.find(x => x.id === versions.values[0].id)){
+                        console.log("bb")
+                        treeDataSource.push(...versions.values);
+                        treeDataSourceStore.reload();
 
-            if (versions) {
-                treeDataSource.push(...versions.values);
-                treeDataSourceStore.reload();
-                console.log(treeDataSource)
-            }
+                    }
+                }
+              });
         }
-    }
+    };
 
     const treeViewRender = () => {
         return (
             <div
                 style={{
-                    border: '3px solid black',
-                    // width: '400px',
                     height: '250px',
                     overflow: 'scroll',
                 }}
@@ -115,6 +117,7 @@ const FixedVersionMultiSelect = (props) => {
                 let versions = await getProjectVersions(listProject, startAt, limit);
 
                 if (versions) {
+                    console.log("ff")
                     // update the total
                     total = versions.total;
                     setTreeDataSource(versions.values);
